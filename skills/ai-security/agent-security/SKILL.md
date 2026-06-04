@@ -7,7 +7,7 @@ description: >
   multi-agent trust boundaries. Auto-invoked when reviewing agentic AI systems
   where LLMs invoke tools, take autonomous actions, or operate in multi-agent
   configurations. Produces a structured architecture security assessment mapped
-  to OWASP Agentic AI threats and NIST AI RMF 1.0.
+  to source-checked OWASP Agentic Applications guidance and NIST AI RMF 1.0.
 tags: [ai-security, agents, agentic-ai, architecture]
 role: [security-engineer, architect, appsec-engineer, vciso]
 phase: [design, build, review]
@@ -25,7 +25,7 @@ argument-hint: "[target-file-or-directory]"
 
 # AI Agent Security Architecture Review
 
-This skill guides a structured security architecture review of AI agent systems -- applications where LLM-powered agents operate autonomously, invoke tools, maintain state, and potentially collaborate with other agents. The focus is on architectural security controls: permission models, containment boundaries, human oversight gates, auditability, and recoverability. The methodology is aligned with **OWASP Agentic AI threat categories** (from the OWASP GenAI Security Project) and **NIST AI RMF 1.0**.
+This skill guides a structured security architecture review of AI agent systems -- applications where LLM-powered agents operate autonomously, invoke tools, maintain state, and potentially collaborate with other agents. The focus is on architectural security controls: permission models, containment boundaries, human oversight gates, auditability, and recoverability. The methodology is aligned with source-checked **OWASP Agentic Applications** guidance from the OWASP GenAI Security Project and **NIST AI RMF 1.0**.
 
 This skill complements the `agentic-top-10` skill (which covers the full OWASP Agentic AI threat taxonomy) by going deeper on architecture-level security controls. Use `agentic-top-10` for a broad threat assessment; use this skill when the architecture itself needs detailed security review.
 
@@ -86,6 +86,7 @@ Before beginning the assessment, gather the following. If any item is unavailabl
 | Error handling and rollback code | Exception handlers, compensation logic, undo mechanisms | Reveals recovery capability |
 | Rate limiting and budget controls | API gateway configs, token budgets, cost limits | Determines resource exhaustion risk |
 | State persistence architecture | Database schemas, vector stores, session stores | Shows what state agents can read and write |
+| OWASP Agentic taxonomy source | Official OWASP GenAI resource page, assessment source register | Prevents stale or ambiguous AG mapping in architecture reports |
 
 ---
 
@@ -102,6 +103,20 @@ When assessing agent architectures, evaluate risks across three interdependent l
 | **Information System** | Risks to the broader IT environment the agent operates within | Lateral movement, data exfiltration, credential theft, persistent access |
 
 Use this layered lens throughout Steps 1-7 to ensure findings are not clustered in a single layer while risks in other layers go unassessed.
+
+### Framework Source Currency Gate
+
+Before mapping findings to OWASP Agentic identifiers, record the source used for the taxonomy. Do not rely on a generic project home page alone when assigning AG categories.
+
+| Required Field | Evidence |
+|---|---|
+| OWASP source URL | Current official OWASP GenAI resource, such as `https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/` |
+| Release label | `OWASP Top 10 for Agentic Applications 2026` or the specific legacy baseline intentionally used |
+| Date checked | Date the source was verified during the assessment |
+| Category naming status | Current, legacy, mapped, or Not Evaluable if category IDs/names could not be verified |
+| Mapping confidence | High when the current source is checked; Partial/Not Evaluable when only generic or stale references are available |
+
+If a report maps to `AG01`-style identifiers without source URL, release label, and date checked, record the framework mapping as an evidence gap rather than a fully verified compliance mapping. If the current source uses a different identifier scheme, record the `AG` value as legacy or provide an explicit crosswalk to the current identifier.
 
 ### Additional Threat Categories
 
@@ -492,6 +507,13 @@ Glob: **/security_architecture*
 |---|---|---|---|---|---|
 | [name] | [purpose] | [tool list] | [credential type] | [Yes/No, which actions] | [trust level] |
 
+## Framework Source Register
+
+| Framework | Source URL | Release/Version | Date Checked | Mapping Confidence |
+|---|---|---|---|---|
+| OWASP Agentic Applications | [official OWASP GenAI resource URL] | [release label] | [date] | [High / Partial / Not Evaluable] |
+| NIST AI RMF | [official NIST source URL] | [version] | [date] | [High / Partial / Not Evaluable] |
+
 ## Architecture Diagram Annotations
 [Notes on trust boundaries, data flows, and security control placement annotating the existing architecture diagram, or a text-based representation if no diagram exists]
 
@@ -500,7 +522,7 @@ Glob: **/security_architecture*
 ### Finding [N]: [Title]
 - **Review Area:** [Permission Model | Least Privilege | HITL Gates | Blast Radius | Audit Trail | Rollback | Multi-Agent Trust]
 - **Severity:** [Critical | High | Medium | Low | Informational]
-- **OWASP Agentic AI Category:** [AG01-AG10 or N/A]
+- **OWASP Agentic Applications Category:** [current identifier, legacy AG identifier, or N/A, with source-register confidence]
 - **NIST AI RMF Function:** [GOVERN | MAP | MEASURE | MANAGE] [subcategory]
 - **Location:** [file path, configuration, or architectural component]
 - **Description:** [What the architectural gap is and why it matters]
@@ -525,7 +547,7 @@ Glob: **/security_architecture*
 [Prioritized list of architectural improvements]
 
 ## Framework Compliance Mapping
-| Finding | OWASP Agentic AI | NIST AI RMF |
+| Finding | OWASP Agentic Applications | NIST AI RMF |
 |---|---|---|
 | [finding] | [category] | [subcategory] |
 ```
@@ -536,12 +558,12 @@ Glob: **/security_architecture*
 
 | Framework | Identifier | Description |
 |---|---|---|
-| OWASP Agentic AI Threats | AG01 | Excessive Agency and Permissions -- agents provisioned with more tools or credentials than required |
-| OWASP Agentic AI Threats | AG02 | Tool Misuse and Abuse -- legitimate tools used in unintended or harmful ways |
-| OWASP Agentic AI Threats | AG03 | Privilege Escalation -- agent obtains elevated permissions through manipulation |
-| OWASP Agentic AI Threats | AG05 | Trust Boundary Violations -- implicit trust between agents exploited for lateral movement |
-| OWASP Agentic AI Threats | AG06 | Data Exfiltration via Tool Calls -- legitimate tool access used to transmit data to attacker |
-| OWASP Agentic AI Threats | AG08 | Human-in-the-Loop Bypass -- approval gates circumvented through workflow exploitation |
+| OWASP Agentic AI Threats (legacy AG mapping) | AG01 | Excessive Agency and Permissions -- agents provisioned with more tools or credentials than required |
+| OWASP Agentic AI Threats (legacy AG mapping) | AG02 | Tool Misuse and Abuse -- legitimate tools used in unintended or harmful ways |
+| OWASP Agentic AI Threats (legacy AG mapping) | AG03 | Privilege Escalation -- agent obtains elevated permissions through manipulation |
+| OWASP Agentic AI Threats (legacy AG mapping) | AG05 | Trust Boundary Violations -- implicit trust between agents exploited for lateral movement |
+| OWASP Agentic AI Threats (legacy AG mapping) | AG06 | Data Exfiltration via Tool Calls -- legitimate tool access used to transmit data to attacker |
+| OWASP Agentic AI Threats (legacy AG mapping) | AG08 | Human-in-the-Loop Bypass -- approval gates circumvented through workflow exploitation |
 | NIST AI RMF 1.0 | GOVERN 1.2 | Roles, responsibilities, and authorities for AI risk management |
 | NIST AI RMF 1.0 | GOVERN 1.4 | Risk management processes established and integrated |
 | NIST AI RMF 1.0 | MAP 3.5 | Impact assessment for AI system capabilities and limitations |
@@ -551,7 +573,7 @@ Glob: **/security_architecture*
 | NIST AI RMF 1.0 | MANAGE 2.4 | Mechanisms for tracking and responding to AI risks |
 | NIST AI RMF 1.0 | MANAGE 4.1 | Incident tracking, response, and recovery |
 
-**OWASP Agentic AI Threats:** These threat categories are maintained by the OWASP GenAI Security Project working group. The AG01-AG10 numbering and scope used here reflect the documented threat areas. Verify current numbering and content against the latest published version at [genai.owasp.org](https://genai.owasp.org).
+**OWASP Agentic Applications source handling:** The current OWASP GenAI source is the OWASP Top 10 for Agentic Applications 2026. The legacy AG01-AG10 mapping above must be verified against the current source, recorded as legacy/mapped if appropriate, and captured in the Framework Source Register before the report treats the mapping as high confidence.
 
 **NIST AI RMF 1.0:** Published January 2023. Organized around four functions: GOVERN (policies, culture), MAP (context, risk identification), MEASURE (risk analysis), MANAGE (risk response, monitoring). Reference: [nist.gov/aiframework](https://www.nist.gov/aiframework)
 
@@ -573,8 +595,8 @@ Glob: **/security_architecture*
 
 ## References
 
-1. OWASP GenAI Security Project -- Agentic AI Threat Categories -- https://genai.owasp.org
-2. OWASP Top 10 for LLM Applications 2025 -- https://owasp.org/www-project-top-10-for-large-language-model-applications/
+1. OWASP Top 10 for Agentic Applications 2026 -- https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+2. OWASP Top 10 for LLM Applications 2025 -- https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/
 3. NIST AI Risk Management Framework 1.0 (January 2023) -- https://www.nist.gov/aiframework
 4. NIST SP 800-53 Rev. 5 -- Security and Privacy Controls (AC-6: Least Privilege, AU-2: Event Logging, AU-10: Non-repudiation) -- https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
 5. MITRE ATLAS -- Adversarial Threat Landscape for AI Systems -- https://atlas.mitre.org
