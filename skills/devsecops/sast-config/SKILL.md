@@ -1,7 +1,7 @@
 ---
 name: sast-config
 description: >
-  Reviews and tunes SAST tool configurations against OWASP ASVS 4.0.3 and
+  Reviews and tunes SAST tool configurations against OWASP ASVS 5.0.0 and
   CWE Top 25. Auto-invoked when reviewing Semgrep rules, CodeQL queries, SAST
   CI integration, or false positive triage workflows. Produces a SAST maturity
   assessment covering rule authoring, severity tuning, custom rule development,
@@ -9,10 +9,10 @@ description: >
 tags: [devsecops, sast, semgrep, codeql]
 role: [security-engineer, appsec-engineer]
 phase: [build]
-frameworks: [OWASP-ASVS-4.0.3, CWE-Top-25]
+frameworks: [OWASP-ASVS-5.0.0, CWE-Top-25]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -22,7 +22,7 @@ argument-hint: "[target-file-or-directory]"
 
 # SAST Tool Configuration and Tuning
 
-A structured, repeatable process for reviewing and tuning Static Application Security Testing (SAST) tool configurations against OWASP ASVS 4.0.3 verification requirements and the CWE Top 25 Most Dangerous Software Weaknesses. This skill covers Semgrep rule authoring, CodeQL query patterns, severity tuning, false positive management, custom rule development, and CI integration. All findings map to ASVS controls and CWE identifiers.
+A structured, repeatable process for reviewing and tuning Static Application Security Testing (SAST) tool configurations against OWASP ASVS 5.0.0 verification requirements and the CWE Top 25 Most Dangerous Software Weaknesses. This skill covers Semgrep rule authoring, CodeQL query patterns, severity tuning, false positive management, custom rule development, and CI integration. All findings map to ASVS controls and CWE identifiers.
 
 ---
 
@@ -41,7 +41,7 @@ If a target is provided via arguments, focus the review on: $ARGUMENTS
 
 ## Context
 
-SAST tools are only as effective as their configuration. Default rule sets produce high false positive rates that erode developer trust, while overly aggressive tuning creates dangerous blind spots. OWASP ASVS 4.0.3 provides 286 verification requirements across 14 chapters -- a subset of these are automatable via SAST. The CWE Top 25 (2024 edition) identifies the most prevalent and impactful weakness types. Effective SAST tuning maps rules to these frameworks, tunes severity to organizational risk context, and integrates into CI with clear pass/fail criteria that developers can act on.
+SAST tools are only as effective as their configuration. Default rule sets produce high false positive rates that erode developer trust, while overly aggressive tuning creates dangerous blind spots. OWASP ASVS 5.0.0 provides current application security verification requirements; a subset of these are automatable via SAST. The CWE Top 25 (2024 edition) identifies the most prevalent and impactful weakness types. Effective SAST tuning maps rules to these frameworks, tunes severity to organizational risk context, and integrates into CI with clear pass/fail criteria that developers can act on.
 
 ---
 
@@ -456,7 +456,7 @@ jobs:
 - SAST tool(s): <Semgrep, CodeQL, SonarQube, etc.>
 - Configuration files analyzed: <list of file paths>
 - Date: <assessment date>
-- Frameworks applied: OWASP ASVS 4.0.3, CWE Top 25
+- Frameworks applied: OWASP ASVS 5.0.0, CWE Top 25
 
 ### CWE Top 25 Coverage
 
@@ -494,7 +494,7 @@ jobs:
 
 ## Framework Reference
 
-### OWASP ASVS 4.0.3 (SAST-Relevant Chapters)
+### OWASP ASVS 5.0.0 (SAST-Relevant Chapters)
 
 | Chapter | Title | SAST Coverage |
 |---------|-------|---------------|
@@ -551,7 +551,8 @@ This skill processes SAST configuration files, custom rules, and code patterns t
 
 ## References
 
-- OWASP ASVS 4.0.3: https://owasp.org/www-project-application-security-verification-standard/
+- OWASP ASVS 5.0.0: https://owasp.org/www-project-application-security-verification-standard/
+- OWASP ASVS 5.0.0 release: https://github.com/OWASP/ASVS/releases/tag/v5.0.0_release
 - CWE Top 25 (2024): https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html
 - Semgrep Documentation: https://semgrep.dev/docs/
 - Semgrep Rule Syntax: https://semgrep.dev/docs/writing-rules/rule-syntax/
@@ -564,4 +565,5 @@ This skill processes SAST configuration files, custom rules, and code patterns t
 
 ## Changelog
 
-- **1.0.0** -- Initial release. Full coverage of SAST configuration review against OWASP ASVS 4.0.3 and CWE Top 25, with Semgrep and CodeQL patterns.
+- **1.0.1** -- Refresh OWASP ASVS source references and discovery metadata from 4.0.3 to 5.0.0.
+- **1.0.0** -- Initial release. Full coverage of SAST configuration review against OWASP ASVS and CWE Top 25, with Semgrep and CodeQL patterns.
