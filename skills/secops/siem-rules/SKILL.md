@@ -5,14 +5,15 @@ description: >
   SPL (Splunk) query languages, mapped to MITRE ATT&CK v16 techniques. Auto-invoked
   when the user needs to write SIEM queries, tune alert thresholds, build correlation
   rules, or manage the detection rule lifecycle. Produces production-ready queries
-  with detection logic patterns, threshold tuning guidance, and lifecycle management.
+  with detection logic patterns, robust threshold baseline evidence, tuning guidance,
+  and lifecycle management.
 tags: [secops, siem, kql, spl]
 role: [soc-analyst, security-engineer]
 phase: [operate]
 frameworks: [MITRE-ATT&CK-v16]
 difficulty: intermediate
 time_estimate: "20-40min"
-version: "1.0.0"
+version: "1.1.0"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -53,10 +54,13 @@ Before beginning, gather or confirm:
 - [ ] **Target SIEM platform:** Microsoft Sentinel (KQL) or Splunk (SPL).
 - [ ] **Detection objective:** What behavior or threat is being detected? Include ATT&CK technique ID if known.
 - [ ] **Available data tables/indexes:** Which log tables (Sentinel) or indexes (Splunk) contain the relevant data?
-- [ ] **Environment baseline:** Normal volume and patterns for the data source (e.g., average daily failed logon count, typical admin logon hours).
+- [ ] **Baseline evidence:** Normal volume and patterns for the data source by entity or peer group where practical (e.g., user, host, source IP, service account, application, business unit).
+- [ ] **Baseline quality:** Lookback range, bin size, sample count, zero-rate/sparsity, ingestion delay, missing data, excluded incidents, maintenance windows, campaigns, or other known outliers.
+- [ ] **Distribution shape:** Median, percentiles, maximums, burstiness, heavy tails, day/hour seasonality, and whether a simple mean/standard deviation model is defensible.
 - [ ] **Alert priority and response:** Desired severity level and expected analyst response procedure.
 - [ ] **Performance constraints:** Query time window, maximum execution time, and scheduled frequency.
 - [ ] **Existing rules:** Any current rules covering similar detections that may overlap or conflict.
+- [ ] **Threshold ownership:** Rule owner, last validation date, next review date, and expiry/review date for exclusions or suppressions.
 
 ---
 
@@ -428,11 +432,36 @@ index=wineventlog sourcetype="WinEventLog:Security" EventCode=4624 LogonType=3
 
 **Tuning methodology:**
 
-1. **Baseline:** Run the query in search mode for 7-30 days without alerting. Record the result count distribution.
-2. **Statistical analysis:** Calculate mean, median, and standard deviation of the daily/hourly result count.
-3. **Threshold selection:** Set the initial threshold at mean + 2 standard deviations to capture anomalous activity while filtering normal variance.
-4. **Iterative tuning:** After deployment, review alerts weekly for the first month. Adjust the threshold based on TP/FP ratio.
-5. **Exclusion management:** Add exclusions for confirmed legitimate activity. Document each exclusion with a ticket reference and review date.
+1. **Define the population:** State the exact behavior being counted, the entity key being grouped on, and the population being compared. Prefer per-entity or peer-group baselines for user, host, source IP, application, service account, ASN, business unit, or asset criticality when a global threshold would hide local anomalies.
+2. **Collect baseline evidence:** Run the query without alerting for 7-30 days or longer when weekly/monthly seasonality matters. Record lookback, bin size, number of bins, missing bins, zero-rate, ingestion delay, known incidents, maintenance windows, campaigns, and other periods excluded from the baseline.
+3. **Inspect distribution shape:** Calculate count, median, p75, p90, p95/p99, max, interquartile range (IQR), median absolute deviation (MAD), and standard deviation. Review histograms or timecharts for burstiness, heavy tails, weekday/hour seasonality, and late-arriving data before choosing a model.
+4. **Choose the threshold method deliberately:**
+   - Use a fixed deterministic threshold for explicit threat patterns where the attack definition is count-based (for example, 10 distinct accounts from one IP in 10 minutes).
+   - Use percentile, IQR, trimmed mean, or MAD thresholds for skewed or heavy-tailed logs.
+   - Use per-entity or peer-group thresholds when entities have different normal rates.
+   - Use moving, EWMA, or seasonal baselines when the stream is stable but time-dependent.
+   - Use first-seen, rare-event, or minimum-volume gates for sparse or near-zero streams; do not infer statistical confidence from a handful of non-zero bins.
+   - Use mean + 2 standard deviations only when the distribution is reasonably stable, not dominated by outliers, and the evidence block explains why that model is acceptable.
+5. **Validate boundary cases:** Test known true-positive scenarios, expected high-volume legitimate activity, low-volume entities, new entities, late-arriving events, and empty-result windows. Capture expected TP/FP volume before enabling analyst-facing alerts.
+6. **Iterative tuning:** After deployment, review alerts weekly for the first month and at the next scheduled lifecycle review. Adjust threshold method, population, or suppression based on TP/FP ratio and analyst feedback, not only raw alert count.
+7. **Exclusion management:** Add exclusions for confirmed legitimate activity only with an owner, rationale, ticket/reference, creation date, expiry or review date, and expected residual risk. Prefer scoped exclusions over broad allowlists.
+
+**Threshold evidence matrix:**
+
+| Evidence Item | Why It Matters | Example |
+|---------------|----------------|---------|
+| Detection objective | Keeps the threshold tied to adversary behavior | Password spray across many accounts |
+| Population and entity key | Prevents global thresholds from masking local anomalies | `by IPAddress`, `by UserPrincipalName`, `by Computer` |
+| Peer group | Compares similar entities rather than all activity | Admin users, kiosks, service accounts |
+| Lookback and bin size | Shows the statistical sample being used | 30 days, 1-hour bins |
+| Sample size and zero-rate | Flags sparse baselines that cannot support normal statistics | 720 bins, 86% zero bins |
+| Distribution summary | Exposes skew and outliers before modeling | median, p95, p99, max, IQR, MAD, stdev |
+| Excluded periods | Avoids training on incidents, migrations, scans, or campaigns | Patch weekend excluded by change ticket |
+| Seasonality check | Prevents weekday/hour cycles from becoming false positives | Business-hours pattern documented |
+| Chosen method | Makes the threshold reproducible | p99 per peer group, MAD, EWMA |
+| Expected alert volume | Confirms analyst queue impact | 2-5 alerts/week |
+| Suppression/allowlist | Documents duplicate-control risk | 1h suppression, owned exception |
+| Owner and review date | Prevents stale thresholds and permanent exceptions | Rule owner, last validated, next review |
 
 **Threshold tuning parameters:**
 
@@ -441,9 +470,15 @@ index=wineventlog sourcetype="WinEventLog:Security" EventCode=4624 LogonType=3
 | `count threshold` | Minimum event count to trigger | `>= 10 failed logins` |
 | `distinct count threshold` | Minimum unique values | `>= 5 distinct accounts` |
 | `time window` | Aggregation period | `10m`, `1h`, `24h` |
-| `lookback period` | Historical data to evaluate | `ago(1h)`, `ago(24h)` |
+| `lookback period` | Historical data to evaluate | `ago(1h)`, `ago(24h)`, 30-day baseline export |
+| `baseline scope` | Entity or peer group used for normal behavior | Per user, per host, per source IP |
+| `minimum sample` | Minimum bins/events before statistics are trusted | `>= 168 hourly bins`, `>= 20 non-zero bins` |
+| `baseline method` | Statistical or deterministic approach selected | p99, IQR, MAD, EWMA, fixed count |
+| `seasonality model` | Time-aware baseline when normal activity varies | Hour-of-day, weekday/weekend |
+| `excluded outliers` | Incidents or known-good bursts removed from training | Maintenance window, password reset campaign |
 | `frequency` | How often the rule runs | Every 5m, 15m, 1h |
 | `suppression window` | Cooldown after firing to prevent duplicate alerts | 1h, 4h, 24h |
+| `suppression owner/expiry` | Accountability for duplicate control and allowlists | Owner, ticket, review date |
 
 **KQL alert rule scheduling (Sentinel Analytics Rule):**
 
@@ -500,6 +535,17 @@ Entity mapping:      Account -> UserPrincipalName, IP -> IPAddress, Host -> Comp
 | P3 | Medium | Detection rule needs tuning (high FP rate) or coverage improvement (missing sub-technique variants). | Tune within 30 days |
 | P4 | Low | Rule health metric outside target range (stale rule, high exclusion count). No immediate security impact. | Review within 90 days |
 
+**Threshold baseline review codes:**
+
+| Code | Finding |
+|------|---------|
+| SIEM-THR-01 | Mean + 2 standard deviations is used without validating distribution shape, outlier sensitivity, or sample size. |
+| SIEM-THR-02 | A global threshold is used where per-entity or peer-group baselines are required to detect local anomalies. |
+| SIEM-THR-03 | Sparse, near-zero, or newly onboarded streams are treated as statistically meaningful baselines. |
+| SIEM-THR-04 | Known incidents, maintenance, migrations, campaigns, or other outlier windows are included without rationale. |
+| SIEM-THR-05 | Suppression, allowlist, or exclusion logic lacks owner, rationale, ticket/reference, expiry, or review date. |
+| SIEM-THR-06 | Seasonality, late-arriving data, missing bins, or empty-result windows are not tested before deployment. |
+
 ---
 
 ## 5. Output Format
@@ -509,7 +555,7 @@ Produce SIEM rule deliverables in this structure:
 ```markdown
 ## SIEM Detection Rule: [Rule Name]
 **Date:** [YYYY-MM-DD]
-**Skill:** siem-rules v1.0.0
+**Skill:** siem-rules v1.1.0
 **Framework:** MITRE ATT&CK v16
 **Platform:** [Microsoft Sentinel (KQL) | Splunk (SPL)]
 
@@ -529,10 +575,28 @@ Produce SIEM rule deliverables in this structure:
 ### Threshold Configuration
 | Parameter | Value | Rationale |
 |-----------|-------|-----------|
+| Detection objective | [Behavior counted] | [Why this indicates threat activity] |
+| Population / entity key | [Global / per user / per host / per IP / peer group] | [Why this scope avoids hiding anomalies] |
 | Count threshold | [N] | [Why this value] |
 | Time window | [Xm/h] | [Why this window] |
+| Lookback / bin size | [Range and bin] | [Baseline sample used] |
+| Minimum sample gate | [Bins/events required] | [Why statistics are reliable enough] |
+| Baseline method | [Fixed / percentile / IQR / MAD / EWMA / seasonal / mean+2 stdev] | [Why this method fits the distribution] |
+| Excluded outliers | [Incidents, maintenance, campaigns] | [Why excluded from training] |
 | Frequency | [Xm/h] | [How often to run] |
-| Suppression | [Xh] | [Cooldown period] |
+| Suppression | [Xh, owner, expiry] | [Cooldown period and review owner] |
+
+### Threshold Validation Evidence
+| Evidence | Value |
+|----------|-------|
+| Baseline sample size | [Number of bins/events and non-zero bins] |
+| Distribution summary | [Median, p90/p95/p99, max, IQR or MAD, stdev if used] |
+| Seasonality observed | [None / hour-of-day / weekday / maintenance cycle] |
+| Expected true positives | [Known test cases or historical incidents] |
+| Expected false positives | [Legitimate high-volume sources] |
+| Expected alert volume | [Alerts per day/week] |
+| Last validated | [YYYY-MM-DD, owner] |
+| Next review / expiry | [YYYY-MM-DD] |
 
 ### Entity Mapping
 | Entity Type | Source Field |
@@ -632,6 +696,18 @@ Deploying a rule without confirming it fires on known-malicious activity is depl
 
 A detection rule that fires every 5 minutes on the same ongoing activity (e.g., a brute force attack lasting 2 hours) floods the alert queue with duplicates. Configure alert suppression or deduplication to prevent the same incident from generating hundreds of identical alerts. Use suppression windows and entity-based grouping to consolidate related alerts.
 
+### Pitfall 6: Treating Mean + 2 Standard Deviations as a Universal Threshold
+
+Security logs are often sparse, skewed, seasonal, or dominated by a few large bursts. A mean and standard deviation threshold can become meaningless when most bins are zero, when one migration campaign inflates the baseline, or when different users and hosts have very different normal rates. Validate the distribution first and choose percentile, IQR, MAD, moving, seasonal, deterministic, first-seen, or per-entity methods when they better match the data.
+
+### Pitfall 7: Using One Global Baseline for Entity-Specific Behavior
+
+A global threshold can miss attacks against low-volume entities and create noise for naturally high-volume entities. Baseline by entity or peer group when the detection depends on user, host, source IP, application, service account, role, or asset criticality. Document why a global threshold is acceptable if one is still used.
+
+### Pitfall 8: Leaving Suppressions and Allowlists Without Expiry
+
+Suppressions and allowlists reduce duplicate alerts but can also hide attacks if they become permanent. Every exception should have an owner, rationale, ticket/reference, creation date, expiry or review date, and narrow matching logic.
+
 ---
 
 ## 8. Prompt Injection Safety Notice
@@ -658,3 +734,18 @@ This skill processes user-supplied content that may include SIEM query drafts, l
 8. **MITRE ATT&CK Data Sources** -- https://attack.mitre.org/datasources/
 9. **Sentinel Entity Mapping** -- https://learn.microsoft.com/en-us/azure/sentinel/map-data-fields-to-entities
 10. **Splunk CIM (Common Information Model)** -- https://docs.splunk.com/Documentation/CIM/latest/User/Overview
+11. **Microsoft Sentinel Scheduled Analytics Rules** -- https://learn.microsoft.com/en-us/azure/sentinel/scheduled-rules-overview
+12. **Kusto series_outliers()** -- https://learn.microsoft.com/en-us/kusto/query/series-outliers-function
+13. **Kusto series_decompose_anomalies()** -- https://learn.microsoft.com/en-us/kusto/query/series-decompose-anomalies-function
+14. **Splunk Statistical and Charting Functions** -- https://docs.splunk.com/Documentation/Splunk/latest/SearchReference/CommonStatsFunctions
+15. **NIST SP 800-92 Guide to Computer Security Log Management** -- https://csrc.nist.gov/pubs/sp/800/92/final
+
+---
+
+## 10. Changelog
+
+### v1.1.0
+
+- Replaces the default mean + 2 standard deviations threshold recommendation with a threshold-method decision flow.
+- Adds baseline evidence requirements for sample size, sparsity, distribution shape, outliers, seasonality, peer groups, suppression ownership, and review dates.
+- Adds threshold review codes for unstable baselines, sparse streams, global thresholds, unmanaged exclusions, and untested late-arriving or empty-result windows.
