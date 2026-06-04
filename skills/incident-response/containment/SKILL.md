@@ -12,7 +12,7 @@ phase: [respond]
 frameworks: [NIST-SP-800-61r2, MITRE-ATT&CK]
 difficulty: intermediate
 time_estimate: "15-30min"
-version: "1.0.1"
+version: "1.0.2"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -179,6 +179,8 @@ Map observed attacker techniques to targeted containment actions. Each ATT&CK te
 ### Step 4b: Wiper / Destructive Malware Containment
 
 Wiper and destructive malware require a distinct containment approach from ransomware or standard malware. The goal shifts from "stop encryption and preserve data" to "stop destruction and protect remaining systems," since wiped data is irrecoverable.
+
+When using current incidents as examples, separate confirmed victim facts from reported threat-actor claims. For example, Stryker confirmed a March 2026 cybersecurity attack that disrupted its internal Microsoft environment and later identified a malicious file used to hide activity; public reporting described Handala claims and possible Microsoft Intune remote-wipe abuse. Use those details as containment hypotheses, not as confirmed scope, unless backed by victim, government, or high-confidence threat intelligence sources.
 
 **Containment priorities (in order):**
 
@@ -375,4 +377,6 @@ This skill processes incident data including attacker-controlled indicators (IP 
 9. **MITRE ATT&CK -- Data Destruction (T1485)** -- https://attack.mitre.org/techniques/T1485/
 10. **MITRE ATT&CK -- Disk Wipe (T1561)** -- https://attack.mitre.org/techniques/T1561/
 11. **CISA Destructive Malware Guidance** -- https://www.cisa.gov/topics/cyber-threats-and-advisories
-12. **KrebsOnSecurity: Iran-backed wiper attack on Stryker medtech (2026)** -- https://krebsonsystems.com/2026/03/iran-backed-hackers-claim-wiper-attack-on-medtech-firm-stryker/
+12. **Stryker customer updates: Stryker network disruption (2026)** -- https://www.stryker.com/us/en/about/news/2026/a-message-to-our-customers-03-2026.html
+13. **KrebsOnSecurity: Iran-backed hackers claim wiper attack on Stryker medtech (2026)** -- https://krebsonsecurity.com/2026/03/iran-backed-hackers-claim-wiper-attack-on-medtech-firm-stryker/
+14. **MITRE ATT&CK: VOID MANTICORE / Handala Hack (G1055)** -- https://attack.mitre.org/groups/G1055/
