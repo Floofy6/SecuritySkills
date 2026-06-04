@@ -415,7 +415,7 @@ Add these to the supply chain risk indicators when scanning a .NET project:
 ## References
 
 - [NuGet Security Best Practices](https://learn.microsoft.com/en-us/nuget/concepts/security-best-practices)
-- [Microsoft Supply Chain Security — Securing the Software Supply Chain](https://learn.microsoft.com/en-us/nuget/concepts/package-source-mapping)
+- [NuGet config file reference](https://learn.microsoft.com/en-us/nuget/reference/nuget-config-file)
 - [.NET Package Validation](https://learn.microsoft.com/en-us/dotnet/fundamentals/package-validation/overview)
 - [NuGet Package Source Mapping](https://learn.microsoft.com/en-us/nuget/consume-packages/package-source-mapping)
 - [Central Package Management](https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management)
