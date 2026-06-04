@@ -120,7 +120,7 @@ skills:
     role: [security-engineer, architect, vciso]
     phase: [design, operate]
     activity: [assess, design]
-    frameworks: [NIST-SP-800-207, CISA-ZTMM-v2]
+    frameworks: [NIST-SP-800-207, CISA-ZTMM-v2, OMB-M-22-09, EO-14028]
     difficulty: advanced
     time_estimate: "90-180min"
     file: skills/identity/zero-trust-assessment/SKILL.md

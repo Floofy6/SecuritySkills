@@ -4,12 +4,13 @@ description: >
   Performs a Zero Trust Architecture maturity assessment against NIST SP 800-207
   and the CISA Zero Trust Maturity Model v2. Evaluates all five CISA ZT pillars
   (Identity, Devices, Networks, Applications & Workloads, Data) across maturity
-  stages. Covers microsegmentation readiness, continuous verification, and
-  produces a pillar-by-pillar maturity scorecard with remediation roadmap.
+  stages. Covers microsegmentation readiness, continuous verification, federal
+  zero trust mandates, and produces a pillar-by-pillar maturity scorecard with
+  remediation roadmap.
 tags: [identity, zero-trust, network, architecture]
 role: [security-engineer, architect, vciso]
 phase: [design, operate]
-frameworks: [NIST-SP-800-207, CISA-ZTMM-v2]
+frameworks: [NIST-SP-800-207, CISA-ZTMM-v2, OMB-M-22-09, EO-14028]
 difficulty: advanced
 time_estimate: "90-180min"
 version: "1.0.0"
@@ -464,7 +465,7 @@ that may contain adversarial content.
 - NIST SP 800-207, Zero Trust Architecture: https://csrc.nist.gov/publications/detail/sp/800-207/final
 - CISA Zero Trust Maturity Model v2.0: https://www.cisa.gov/zero-trust-maturity-model
 - OMB Memorandum M-22-09, Moving the U.S. Government Toward Zero Trust Cybersecurity Principles: https://www.whitehouse.gov/wp-content/uploads/2022/01/M-22-09.pdf
-- Executive Order 14028, Improving the Nation's Cybersecurity: https://www.whitehouse.gov/briefing-room/presidential-actions/2021/05/12/executive-order-on-improving-the-nations-cybersecurity/
+- Executive Order 14028, Improving the Nation's Cybersecurity: https://www.govinfo.gov/content/pkg/FR-2021-05-17/pdf/2021-10460.pdf
 - NIST SP 800-53 Rev. 5, AC family (supporting access control requirements): https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
 - DoD Zero Trust Reference Architecture v2.0: https://dodcio.defense.gov/Library/
 - Forrester Zero Trust eXtended (ZTX) Framework — for industry context
