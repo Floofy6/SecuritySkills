@@ -13,7 +13,7 @@ phase: [respond, recover]
 frameworks: [NIST-SP-800-61r2, SANS-IH]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.1"
+version: "1.0.2"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -57,6 +57,7 @@ Before beginning, gather or confirm the following. Mark each item as obtained or
 - [ ] **Affected systems** -- Hostnames, IP addresses, cloud resources, applications, and services impacted or suspected of compromise.
 - [ ] **Timeline** -- When was the activity first observed? When was it reported? Known duration of exposure.
 - [ ] **Indicators of compromise (IOCs)** -- File hashes, IP addresses, domains, URLs, email addresses, registry keys, or behavioral indicators observed.
+- [ ] **Attribution and source confidence** -- Whether actor identity, motive, tooling, or impact comes from first-party statements, regulatory filings, trusted threat intelligence, media reporting, or adversary claims.
 - [ ] **Business context** -- What business functions do the affected systems support? Revenue impact, customer impact, regulatory exposure.
 - [ ] **Current state** -- Is the attack ongoing, contained, or resolved? What actions have already been taken?
 - [ ] **Existing IR plan** -- Does the organization have a documented IR plan, designated IR team, and established communication channels?
@@ -177,12 +178,14 @@ Indicator Analysis Record:
 - Indicator Type:    [IP | Domain | Hash (MD5/SHA1/SHA256) | URL | Email | File Path | Registry Key | Behavioral]
 - Indicator Value:   [value]
 - Source:            [SIEM alert | EDR detection | Threat intel feed | Manual discovery]
+- Source Confidence: [First-party | Regulator filing | Trusted threat intelligence | Media report | Actor claim | Unknown]
 - First Seen:        [YYYY-MM-DD HH:MM UTC]
 - Last Seen:         [YYYY-MM-DD HH:MM UTC]
 - Affected Systems:  [hostname/IP list]
 - TI Enrichment:     [VirusTotal | AbuseIPDB | Shodan | MISP | Internal TI]
 - ATT&CK Technique:  [T-code and name]
 - Confidence:        [Confirmed | Probable | Suspected]
+- Attribution Status: [Claimed | Assessed | Confirmed | Unknown | Not applicable]
 ```
 
 ### Phase 3: Containment, Eradication, and Recovery (NIST) / Containment + Eradication + Recovery (SANS)
@@ -250,7 +253,7 @@ Wiper malware destroys data irrecoverably (unlike ransomware which preserves enc
 | **Containment urgency** | High | Critical -- every second is permanent data loss |
 | **Attribution** | Lower priority (criminal) | Higher priority (often nation-state; FBI/CISA/ISAC engagement) |
 
-**Nation-state context:** State-sponsored actors (Iranian, Russian, North Korean) increasingly deploy wipers against healthcare and defense supply chains. The 2026 Stryker medtech wiper attack demonstrates ePHI custodians are active targets. IR teams must account for pre-positioned backdoors beyond the wiper payload, potential prior data exfiltration, and the need for FBI/CISA/H-ISAC notification.
+**Nation-state context:** State-sponsored actors and state-aligned groups have used destructive tooling against healthcare, medtech, and defense supply chains. Public reporting on the March 2026 Stryker attack, including claims of Microsoft Intune/UEM abuse, shows why IR teams should preserve identity, device-management, cloud-admin, and endpoint evidence together. Treat actor attribution, motive, impact counts, and casualty claims as source-dependent until confirmed by the victim organization, law enforcement, regulators, or trusted threat intelligence. IR teams must account for pre-positioned backdoors beyond the wiper payload, potential prior data exfiltration, and the need for FBI/CISA/sector-ISAC notification.
 
 #### Step 3.2: Eradication
 
@@ -367,7 +370,7 @@ Produce the incident response report with these exact sections:
 ```markdown
 ## Incident Response Report: [Incident ID]
 **Date:** [YYYY-MM-DD]
-**Skill:** ir-playbook v1.0.0
+**Skill:** ir-playbook v1.0.2
 **Frameworks:** NIST SP 800-61 Rev 2, SANS Incident Handler's Handbook
 **Incident Commander:** [Name or "Unassigned -- assign immediately"]
 
@@ -392,9 +395,14 @@ and recommended immediate actions. Lead with the most critical fact.]
 | [YYYY-MM-DD HH:MM] | [Event description] | [Log source / observation] |
 
 ### Indicators of Compromise
-| Type | Value | First Seen | Confidence | ATT&CK Technique |
+| Type | Value | First Seen | Evidence Source | Source Confidence | Finding Confidence | ATT&CK Technique |
+|---|---|---|---|---|---|---|
+| [IP/Domain/Hash/...] | [value] | [timestamp] | [SIEM/EDR/TI/Manual/Media/Actor claim] | [First-party/Regulator/Trusted TI/Media/Actor claim/Unknown] | [Confirmed/Probable/Suspected] | [T-code] |
+
+### Attribution and Source Confidence
+| Claim | Source | Source Confidence | Attribution Status | Operational Use |
 |---|---|---|---|---|
-| [IP/Domain/Hash/...] | [value] | [timestamp] | [Confirmed/Probable/Suspected] | [T-code] |
+| [Actor/tooling/motive/impact claim] | [source] | [First-party/Regulator/Trusted TI/Media/Actor claim/Unknown] | [Claimed/Assessed/Confirmed/Unknown] | [Blocking/Comms-only/Intel context/Do not use] |
 
 ### Containment Actions
 | Action | Status | Timestamp | Performed By |
@@ -468,6 +476,10 @@ Reconnecting systems to the network before thoroughly removing all persistence m
 
 Breach notification regulations impose strict timelines that begin running at the moment of discovery, not at the conclusion of investigation. GDPR requires notification within 72 hours of becoming aware of a personal data breach. Missing these deadlines exposes the organization to regulatory penalties independent of the incident itself. Track notification deadlines from the moment a potential data breach is identified, and involve legal counsel early.
 
+### Pitfall 6: Treating Actor Claims as Confirmed Attribution
+
+Threat actors, public reporting, and early threat-intelligence notes can be useful leads, but they are not the same as confirmed attribution or verified impact. Overstating an actor, motive, casualty claim, or affected-system count can mislead executives, legal counsel, customers, and regulators. Keep operational containment decisions tied to observed evidence, and label attribution as claimed, assessed, confirmed, unknown, or not applicable.
+
 ---
 
 ## 8. Prompt Injection Safety Notice
@@ -496,4 +508,5 @@ This skill processes incident data that may include attacker-controlled content 
 10. **FIRST CSIRT Framework** -- https://www.first.org/education/csirt
 11. **CISA Destructive Malware Guidance** -- https://www.cisa.gov/topics/cyber-threats-and-advisories
 12. **H-ISAC (Health Information Sharing and Analysis Center)** -- https://h-isac.org/
-13. **KrebsOnSecurity: Iran-backed wiper attack on Stryker medtech (2026)** -- https://krebsonsystems.com/2026/03/iran-backed-hackers-claim-wiper-attack-on-medtech-firm-stryker/
+13. **KrebsOnSecurity: Iran-backed hackers claim wiper attack on medtech firm Stryker (2026)** -- https://krebsonsecurity.com/2026/03/iran-backed-hackers-claim-wiper-attack-on-medtech-firm-stryker/
+14. **Cybersecurity Dive: Stryker manufacturing and shipping disruption reporting (2026)** -- https://www.cybersecuritydive.com/news/strykers-manufacturing-shipping-disrupted-cyberattack/814693/
