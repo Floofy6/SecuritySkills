@@ -56,6 +56,7 @@ The OWASP IaC Security Cheat Sheet categorizes common IaC vulnerabilities. SLSA 
 - Access to module registries or module source references
 - Variable definition files and environment-specific overrides
 - State file references (for understanding current deployment, if available)
+- Scanner output, if available, including tool/version, framework, rule ID, resource, file/line, and any current policy `Guide:` URL emitted by Checkov, tfsec, or KICS.
 
 ---
 
@@ -157,6 +158,7 @@ Produce the final report using the structure defined in the Output Format sectio
 - **Status:** Fail
 - **Severity:** Critical / High / Medium / Low
 - **Equivalent Rule:** Checkov CKV_XXX_NN / tfsec xxx-xxx / KICS xxxxxxxx
+- **Rule Source:** <current scanner documentation or policy guide URL, plus tool version/framework if available>
 - **File:** <path>
 - **Line(s):** <line numbers>
 - **Description:** <what was found>
@@ -219,6 +221,9 @@ This skill applies checks equivalent to the following high-impact rules:
 | KICS | 3406e4d3 | S3 public ACL |
 | KICS | 5b4f3042 | Unrestricted security group |
 
+**Checkov source freshness:** Do not cite the deprecated `https://www.checkov.io/5.Policy%20Index/` path as proof for a Checkov rule. Use current Checkov documentation for scanner behavior, the Checkov custom-policy docs for organization-specific checks, and the policy `Guide:` URL emitted in current Checkov output when a finding provides one. Many current Checkov guide links resolve to Prisma Cloud Application Security Policy Reference pages, which list the policy name, Checkov ID, framework, and severity. If no current guide URL is available, record the Checkov version, framework, rule ID, and that the policy source could not be verified.
+
+
 ---
 
 ## Common Pitfalls
@@ -230,6 +235,7 @@ This skill applies checks equivalent to the following high-impact rules:
 5. **Confusing `aws_s3_bucket_acl` with `aws_s3_bucket_public_access_block`.** The public access block overrides ACLs. Check both, but the access block is the stronger control.
 6. **Terraform state file secrets.** Even when variables are marked `sensitive`, they may appear in plaintext in the state file. Verify state encryption and access controls.
 7. **Provider-specific encryption defaults.** Some providers encrypt by default (e.g., AWS S3 since January 2023). Know the defaults before flagging missing explicit encryption configuration.
+8. **Stale scanner-policy references.** Checkov rule IDs and policy guide URLs move over time. Treat stale policy-index links as evidence-quality gaps, and prefer current scanner output, Checkov docs, or Prisma Cloud policy-reference pages before claiming a finding maps to a specific CKV rule.
 
 ---
 
@@ -254,7 +260,10 @@ This skill applies checks equivalent to the following high-impact rules:
 - OWASP Infrastructure as Code Security Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Infrastructure_as_Code_Security_Cheat_Sheet.html
 - SLSA v1.0 Specification: https://slsa.dev/spec/v1.0/
 - CIS Benchmarks: https://www.cisecurity.org/cis-benchmarks
-- Checkov Policy Index: https://www.checkov.io/5.Policy%20Index/
+- Checkov Documentation: https://www.checkov.io/
+- Checkov Custom Policies Overview: https://www.checkov.io/3.Custom%20Policies/Custom%20Policies%20Overview.html
+- Prisma Cloud Application Security Policy Reference (AWS General Policies): https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/aws-general-policies/aws-general-policies
+- Prisma Cloud Application Security Policy Reference (Kubernetes Policy Index): https://docs.prismacloud.io/en/enterprise-edition/policy-reference/kubernetes-policies/kubernetes-policy-index/kubernetes-policy-index
 - tfsec Documentation: https://aquasecurity.github.io/tfsec/
 - KICS (Keeping Infrastructure as Code Secure): https://docs.kics.io/
 - cfn-nag Rules: https://github.com/stelligent/cfn_nag

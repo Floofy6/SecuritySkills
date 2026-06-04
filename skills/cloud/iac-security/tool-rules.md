@@ -4,6 +4,25 @@ This file contains the detailed tool-specific rule sets, detection patterns, and
 
 ---
 
+## Scanner Rule Source Evidence
+
+When mapping a finding to a Checkov, tfsec, KICS, or cfn-nag rule, record the source that proves the rule mapping. For Checkov findings, prefer current scanner output and the policy `Guide:` URL emitted with the finding. Current Checkov examples show per-finding guide links that point to Prisma Cloud policy-reference pages rather than the deprecated umbrella `https://www.checkov.io/5.Policy%20Index/` path.
+
+Capture the following for each scanner-backed rule mapping:
+
+| Field | Why It Matters |
+|---|---|
+| Tool and version | Rule behavior and IDs can change across scanner releases |
+| Framework/runner | Checkov rule scope differs across Terraform, Terraform plan, CloudFormation, Kubernetes, Helm, Dockerfile, ARM, Bicep, and other runners |
+| Rule ID and title | Distinguishes CKV, CKV2, BC, tfsec, KICS, and custom policy identifiers |
+| Policy guide URL | Shows the current policy source, severity, supported framework, and remediation context |
+| Custom/external policy source | Separates built-in checks from organization-specific Python/YAML policies |
+| Verification status | Marks whether the guide URL is current, stale, unavailable, or only inferred from local scanner output |
+
+Do not treat scanner suppressions such as `checkov:skip`, `tfsec:ignore`, `nosec`, or `skipcq` as proof that a finding is safe. Report them as suppression evidence and verify whether the mapped rule still applies.
+
+---
+
 ## Hardcoded Secrets Detection
 
 Scan for credentials, tokens, and keys embedded directly in IaC files. This is the highest-priority check because hardcoded secrets in version control are immediately exploitable.
