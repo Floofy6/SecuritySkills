@@ -291,7 +291,7 @@ skills:
     role: [security-engineer, ml-engineer, appsec-engineer]
     phase: [build, review, operate]
     activity: [review, assess]
-    frameworks: [OWASP-LLM03-2025, SLSA-v1.0, MITRE-ATLAS]
+    frameworks: [OWASP-LLM03-2025, SLSA-v1.0, MITRE-ATLAS, NIST-AI-RMF-1.0]
     difficulty: advanced
     time_estimate: "45-90min"
     file: skills/ai-security/model-supply-chain/SKILL.md

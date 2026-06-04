@@ -7,11 +7,11 @@ description: >
   that download pre-trained models, fine-tune foundation models, or deploy models
   from third-party sources. Produces a structured assessment mapped to OWASP
   LLM03:2025, SLSA v1.0 supply chain levels, and MITRE ATLAS poisoning and
-  supply chain techniques.
+  supply chain techniques, and NIST AI RMF 1.0 lifecycle risk controls.
 tags: [ai-security, supply-chain, model-provenance]
 role: [security-engineer, ml-engineer, appsec-engineer]
 phase: [build, review, operate]
-frameworks: [OWASP-LLM03-2025, SLSA-v1.0, MITRE-ATLAS]
+frameworks: [OWASP-LLM03-2025, SLSA-v1.0, MITRE-ATLAS, NIST-AI-RMF-1.0]
 difficulty: advanced
 time_estimate: "45-90min"
 version: "1.0.0"
@@ -454,5 +454,5 @@ Assess whether architectural and procedural controls exist to detect model backd
 - Gu, T. et al. "BadNets: Identifying Vulnerabilities in the Machine Learning Model Supply Chain" (2017) -- arXiv:1708.06733
 - Hubinger, E. et al. "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training" (2024) -- arXiv:2401.05566
 - Hugging Face. "Safetensors: A Simple and Safe Serialization Format" -- https://huggingface.co/docs/safetensors
-- NIST AI Risk Management Framework 1.0 -- https://www.nist.gov/aiframework
+- NIST AI Risk Management Framework 1.0 -- https://www.nist.gov/itl/ai-risk-management-framework
 - Open Source Security Foundation (OpenSSF) -- https://openssf.org
