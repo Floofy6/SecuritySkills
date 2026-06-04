@@ -2,18 +2,19 @@
 name: alert-triage
 description: >
   Guides structured triage of security alerts using a four-phase methodology
-  (collect, correlate, classify, escalate) mapped to MITRE ATT&CK v16 and
-  aligned with NIST SP 800-61 Rev 2 incident handling guidelines. Auto-invoked
+  (collect, correlate, classify, escalate) mapped to current MITRE ATT&CK v19.1
+  and aligned with NIST SP 800-61 Rev 2 incident handling guidelines. Auto-invoked
   when the user discusses alert investigation, asks "is this a true positive?",
   or shares alert data requiring disposition. Produces a triage decision with
-  priority assignment, disposition category, and escalation recommendation.
+  priority assignment, disposition category, ATT&CK source-version evidence, and
+  escalation recommendation.
 tags: [secops, triage, soc]
 role: [soc-analyst]
 phase: [operate, respond]
-frameworks: [MITRE-ATT&CK-v16, NIST-SP-800-61-Rev2]
+frameworks: [MITRE-ATT&CK-v19.1, NIST-SP-800-61-Rev2]
 difficulty: beginner
 time_estimate: "10-20min per alert"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -23,7 +24,7 @@ argument-hint: "[CVE-ID-or-alert-ID]"
 
 # Alert Triage Playbook
 
-> **Frameworks:** MITRE ATT&CK v16, NIST SP 800-61 Rev 2
+> **Frameworks:** MITRE ATT&CK v19.1, NIST SP 800-61 Rev 2
 > **Role:** SOC Analyst
 > **Time:** 10-20 min per alert
 > **Output:** Alert disposition (TP/BTP/FP), priority assignment (P1-P4), escalation decision
@@ -52,7 +53,8 @@ Before beginning triage, gather or confirm:
 
 - [ ] **Alert details:** Rule name, severity, timestamp, source system (SIEM, EDR, IDS, cloud security).
 - [ ] **Alert data:** The raw event(s) that triggered the alert -- including all available fields (source IP, destination IP, username, hostname, process name, command line, file hash, URL).
-- [ ] **ATT&CK mapping:** If the alert rule maps to a MITRE ATT&CK technique, note the technique ID.
+- [ ] **ATT&CK mapping:** If the alert rule maps to a MITRE ATT&CK technique, note the technique ID, tactic, reviewed ATT&CK version, and technique URL.
+- [ ] **ATT&CK source-version evidence:** Record whether ATT&CK v19.1 was reviewed for this triage. If an organization still uses legacy ATT&CK v16 labels internally, mark them as legacy mappings and verify any currentness claim against the current ATT&CK source.
 - [ ] **Asset context:** What is the affected asset? (Server, workstation, cloud instance, network device.) What is its business criticality? (Revenue-generating, customer-facing, development, test.)
 - [ ] **User context:** Who is the associated user? (Role, department, normal working hours, recent activity patterns.)
 - [ ] **Historical context:** Has this alert fired before? What was the previous disposition? Has this user or host generated related alerts recently?
@@ -91,8 +93,9 @@ Connect the alert data with surrounding context to build a picture of what happe
 1. **Temporal correlation:** What other events occurred on the same host or by the same user within +/- 30 minutes of the alert?
 2. **Lateral correlation:** Are there related alerts on other hosts or from other security tools for the same time period?
 3. **Behavioral correlation:** Does this activity match known ATT&CK technique patterns? Does it match the user's or system's normal behavior baseline?
-4. **Threat intel correlation:** Do any indicators match known threat actor infrastructure, malware campaigns, or published IOCs?
-5. **Kill chain correlation:** Where does this activity fall in the attack lifecycle? Is there evidence of preceding (reconnaissance, initial access) or subsequent (persistence, lateral movement, exfiltration) stages?
+4. **Source-version check:** Is the rule's ATT&CK mapping current for ATT&CK v19.1? If the rule metadata is pinned to v16, verify that the technique, tactic, and URL still match the current Enterprise matrix before using the mapping for priority.
+5. **Threat intel correlation:** Do any indicators match known threat actor infrastructure, malware campaigns, or published IOCs?
+6. **Kill chain correlation:** Where does this activity fall in the attack lifecycle? Is there evidence of preceding (reconnaissance, initial access) or subsequent (persistence, lateral movement, exfiltration) stages?
 
 **ATT&CK-based correlation framework:**
 
@@ -194,8 +197,8 @@ Produce the triage decision as a structured report:
 ```markdown
 ## Alert Triage Report
 **Date:** [YYYY-MM-DD HH:MM UTC]
-**Skill:** alert-triage v1.0.0
-**Frameworks:** MITRE ATT&CK v16, NIST SP 800-61 Rev 2
+**Skill:** alert-triage v1.0.1
+**Frameworks:** MITRE ATT&CK v19.1, NIST SP 800-61 Rev 2
 **Analyst:** [Name or AI-assisted]
 
 ### Alert Summary
@@ -207,6 +210,12 @@ Produce the triage decision as a structured report:
 | Timestamp | [YYYY-MM-DD HH:MM:SS UTC] |
 | ATT&CK Technique | [T1059.001 -- PowerShell or N/A] |
 | ATT&CK Tactic | [Execution (TA0002) or N/A] |
+
+### Source Version Evidence
+| Source | Reviewed Version / Date | Currentness Decision |
+|--------|--------------------------|----------------------|
+| MITRE ATT&CK | [v19.1 / reviewed YYYY-MM-DD] | [Current / Legacy mapping verified / Needs refresh] |
+| Alert rule metadata | [ATT&CK labels embedded in rule] | [Matches current sources / legacy labels documented / unmapped] |
 
 ### Affected Entities
 | Entity | Value | Context |
@@ -249,13 +258,14 @@ exclude known-good IP range, adjust threshold.]
 
 ## 6. Framework Reference
 
-### MITRE ATT&CK v16
+### MITRE ATT&CK v19.1
 
 For alert triage, ATT&CK provides the shared vocabulary for understanding what adversary behavior the alert represents and what to look for next. Key uses during triage:
 
 - **Technique identification:** Map the alert to a specific ATT&CK technique to understand the adversary's objective.
 - **Kill chain positioning:** Determine where the detected activity falls in the attack lifecycle to assess urgency and look for related activity.
 - **Correlation guidance:** Use ATT&CK's tactic flow to predict what an adversary would do before and after the detected technique.
+- **Version verification:** ATT&CK v19.1 is the current ATT&CK website version as of April 28, 2026. Legacy ATT&CK v16/v16.1 mappings should not be reported as current without checking the current technique page, tactic, and source URL.
 
 **ATT&CK tactic flow (simplified attack progression):**
 
@@ -317,7 +327,11 @@ Investigating an alert in isolation without checking for activity before and aft
 
 ### Pitfall 5: Delaying Escalation While Seeking Perfect Information
 
-Waiting for complete certainty before escalating a high-priority alert costs response time. NIST SP 800-61 recommends erring on the side of over-notification. If 20 minutes of investigation has not resolved the disposition and the alert involves a critical asset or privileged account, escalate to Tier 2 or the IR team with your current findings and continue investigation in parallel.
+Waiting for complete certainty before escalating a high-priority alert costs response time. If 20 minutes of investigation has not resolved the disposition and the alert involves a critical asset or privileged account, escalate to Tier 2 or the IR team with your current findings and continue investigation in parallel.
+
+### Pitfall 6: Treating Legacy ATT&CK Labels as Current Evidence
+
+Many detection rules still embed ATT&CK v16 labels. Do not copy those labels into a triage report as current ATT&CK evidence without verifying them against ATT&CK v19.1. If the rule metadata has not been refreshed, mark the mapping as legacy and include the reviewed current-source date.
 
 ---
 
@@ -336,11 +350,11 @@ This skill processes user-supplied content that may include alert payloads, log 
 ## 9. References
 
 1. **NIST SP 800-61 Rev 2 -- Computer Security Incident Handling Guide** -- https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final
-2. **MITRE ATT&CK Enterprise Matrix v16** -- https://attack.mitre.org/matrices/enterprise/
-3. **MITRE ATT&CK Tactics** -- https://attack.mitre.org/tactics/enterprise/
-4. **FIRST CSIRT Services Framework** -- https://www.first.org/standards/frameworks/csirts/csirt_services_framework_v2.1
-5. **SANS Incident Handler's Handbook** -- https://www.sans.org/white-papers/33901/
-6. **SOC Analyst Triage Best Practices (SANS)** -- https://www.sans.org/reading-room/
-7. **Microsoft Sentinel Incident Triage** -- https://learn.microsoft.com/en-us/azure/sentinel/investigate-incidents
-8. **Splunk Enterprise Security Notable Event Triage** -- https://docs.splunk.com/Documentation/ES/latest/User/TriageNotableEvents
-9. **NIST Cybersecurity Framework (CSF) 2.0 -- Detect Function** -- https://www.nist.gov/cyberframework
+2. **MITRE ATT&CK Version History** -- https://attack.mitre.org/resources/versions/
+3. **MITRE ATT&CK Enterprise Matrix** -- https://attack.mitre.org/matrices/enterprise/
+4. **MITRE ATT&CK Tactics** -- https://attack.mitre.org/tactics/enterprise/
+5. **FIRST CSIRT Services Framework** -- https://www.first.org/standards/frameworks/csirts/csirt_services_framework_v2.1
+6. **SANS Incident Handler's Handbook** -- https://www.sans.org/white-papers/33901/
+7. **SOC Analyst Triage Best Practices (SANS)** -- https://www.sans.org/reading-room/
+8. **Microsoft Sentinel Incident Triage** -- https://learn.microsoft.com/en-us/azure/sentinel/investigate-incidents
+9. **Splunk Enterprise Security Notable Event Triage** -- https://docs.splunk.com/Documentation/ES/latest/User/TriageNotableEvents
