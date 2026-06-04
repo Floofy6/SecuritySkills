@@ -12,7 +12,7 @@ phase: [operate]
 frameworks: [CIS-Controls-v8, NIST-SP-800-53-AC]
 difficulty: intermediate
 time_estimate: "45-90min"
-version: "1.0.0"
+version: "1.1.0"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -60,7 +60,7 @@ SECURITY BOUNDARY — This skill processes access review data only.
 
 ## Context
 
-Access reviews are the operational heartbeat of identity governance. NIST SP 800-53 AC-2(j) mandates reviewing accounts for compliance with account management requirements at a defined frequency. CIS Controls v8 reinforces this through Controls 5.1-5.6 (account inventory and lifecycle) and 6.1-6.8 (access control management). Without disciplined reviews, organizations accumulate privilege debt — stale entitlements, orphaned accounts, and SoD violations that expand blast radius during compromise.
+Access reviews are the operational heartbeat of identity governance. NIST SP 800-53 AC-2(j) mandates reviewing accounts for compliance with account management requirements at an organization-defined frequency, and AC-6(7) similarly ties privilege review frequency to organization-defined roles or classes of users. CIS Controls v8 reinforces this through Controls 5.1-5.6 (account inventory and lifecycle) and 6.1-6.8 (access control management). Without disciplined reviews, organizations accumulate privilege debt — stale entitlements, orphaned accounts, and SoD violations that expand blast radius during compromise.
 
 ---
 
@@ -79,7 +79,7 @@ Access reviews are the operational heartbeat of identity governance. NIST SP 800
 | **NIST SP 800-53** | AC-6(9) | Log Use of Privileged Functions | Audit use of privileged functions |
 | **NIST SP 800-53** | AC-6(10) | Prohibit Non-Privileged Users from Executing Privileged Functions | Prevent privilege escalation |
 | **CIS Controls v8** | 5.1 | Establish and Maintain an Inventory of Accounts | Foundation for all access reviews |
-| **CIS Controls v8** | 5.3 | Disable Dormant Accounts | 45-day inactivity threshold |
+| **CIS Controls v8** | 5.3 | Disable Dormant Accounts | Disable dormant accounts using the enterprise-defined dormant threshold; 45 days is CIS safeguard guidance where supported |
 | **CIS Controls v8** | 5.4 | Restrict Administrator Privileges | Dedicated admin accounts |
 | **CIS Controls v8** | 6.1 | Establish an Access Granting Process | Documented provisioning with approval |
 | **CIS Controls v8** | 6.2 | Establish an Access Revoking Process | Timely deprovisioning |
@@ -102,7 +102,8 @@ Identify:
 - **In-scope systems** — production environments, SaaS applications, infrastructure platforms, databases, internal tools
 - **In-scope identity types** — human users, service accounts, shared accounts, external/guest accounts
 - **Entitlement sources** — IdP group memberships, cloud IAM roles, application-level permissions, database grants
-- **Review cadence compliance** — verify the current review meets the organization-defined frequency
+- **Policy evidence** — collect the organization-defined cadence, dormant threshold, risk tiers, approver, approval date, and exception standard before applying default recommendations
+- **Review cadence compliance** — verify the current review meets the approved organization-defined frequency for each risk tier or identity class
 
 **What to look for:**
 
@@ -113,9 +114,25 @@ AR-SCOPE-03: Service accounts excluded from review population
 AR-SCOPE-04: SaaS applications not included in centralized review (shadow IT gap)
 AR-SCOPE-05: No single authoritative source for entitlements (CIS 6.7 — centralize access control)
 AR-SCOPE-06: Guest/external accounts not included in review scope
+AR-SCOPE-07: No approved policy evidence for cadence, risk tiering, dormant threshold, or exception criteria
+AR-SCOPE-08: Default cadence applied as a pass/fail requirement without checking organization-defined policy
+AR-SCOPE-09: Review evidence lacks last campaign completion date or policy-version traceability
 ```
 
-**Recommended cadences:**
+**Policy evidence matrix:**
+
+| Evidence Item | Required Detail | Why It Matters |
+|---|---|---|
+| Access review policy | Cadence by account type, privilege level, app criticality, data sensitivity, worker type, or regulatory scope | Prevents default cadences from becoming false-positive findings |
+| Risk-tier mapping | Which systems and identity classes map to each cadence tier | Shows the cadence is risk-based rather than arbitrary |
+| Dormant account policy | Enterprise-defined inactivity threshold, activity signals used, exception criteria | Distinguishes unmanaged dormant accounts from approved exceptions |
+| Approval evidence | Owner, approver, approval date, policy version, next review date | Proves the control parameter is authorized and current |
+| Campaign execution | Last review launch/completion date, reviewer population, scope, deadline, completion percentage | Allows actual execution to be compared with policy |
+| Exception register | Owner, justification, compensating controls, monitoring, expiry, retest evidence | Keeps break-glass and non-interactive accounts from being treated as unmanaged stale access |
+
+**Fallback cadence guidance:**
+
+Use these defaults when the organization has no approved risk-based cadence or the policy is stale, undocumented, or not traceable to review execution. Do not report a finding solely because a lower-risk population uses a different approved cadence; report the policy gap, missing evidence, or execution miss instead.
 
 | Account Type | Review Frequency | Framework Basis |
 |---|---|---|
@@ -145,9 +162,19 @@ AR-CERT-03: No evidence of review decisions (approve/revoke/modify not logged)
 AR-CERT-04: Certifiers lack visibility into what permissions the entitlement grants
 AR-CERT-05: No escalation path for entitlements where the certifier is uncertain
 AR-CERT-06: Certification decisions not enforced — revoked entitlements not actually removed
-AR-CERT-07: No SLA for certification completion (recommended: 14 business days)
+AR-CERT-07: No organization-defined SLA or campaign deadline for certification completion (fallback recommendation: 14 business days)
 AR-CERT-08: Delegated reviews without accountability (certifier delegates but is not tracked)
+AR-CERT-09: Campaign closed outside approved SLA without documented extension, wave plan, or risk acceptance
 ```
+
+**Certification timing evidence:**
+
+| Evidence | Validation |
+|---|---|
+| Campaign SLA or deadline policy | Compare completion against the approved policy deadline first |
+| Campaign wave plan | Validate each wave against its assigned owner, scope, and due date |
+| Extension or risk acceptance | Require business owner approval, new due date, and affected population |
+| Fallback SLA | Use 14 business days as a default recommendation only when no approved SLA exists |
 
 **Rubber-stamp detection criteria:**
 
@@ -173,11 +200,29 @@ AR-ORPH-01: Accounts belonging to terminated employees still active
 AR-ORPH-02: Accounts belonging to departed contractors not deprovisioned
 AR-ORPH-03: Service accounts with no documented owner (CIS 5.5)
 AR-ORPH-04: Shared accounts with no accountable individual
-AR-ORPH-05: Accounts inactive > 45 days without documented exception (CIS 5.3)
+AR-ORPH-05: Accounts exceed the organization-defined dormant threshold without documented exception (CIS 5.3)
 AR-ORPH-06: Accounts not correlated with authoritative HR source (HRIS feed gap)
 AR-ORPH-07: Deprovisioning SLA exceeded (same-day for terminations, 24 hours for role changes)
 AR-ORPH-08: Test/temporary accounts promoted to production without lifecycle management
+AR-ORPH-09: Dormant threshold applied to interactive login only while non-interactive/API activity is ignored
+AR-ORPH-10: Break-glass, service, machine, or emergency account exception lacks owner, monitoring, expiry, or retest evidence
 ```
+
+**Dormant account threshold handling:**
+
+1. Collect the enterprise-defined dormant threshold and the activity signals it uses, such as interactive login, non-interactive sign-in, API token use, service principal activity, password checkout, or periodic emergency-account test use.
+2. If an approved threshold exists, compare account activity against that threshold and cite the policy owner/version in the finding evidence.
+3. If no approved threshold exists, use the CIS 5.3 45-day safeguard as fallback guidance and report a policy-definition gap instead of treating every exception as non-compliant.
+4. Separate unmanaged stale accounts from documented exceptions. An exception is valid only when it has an accountable owner, business justification, approval date, expiry, monitoring/alerting, compensating controls, and periodic retest evidence.
+
+**Exception validation examples:**
+
+| Account Pattern | Required Evidence | Failure Condition |
+|---|---|---|
+| Break-glass / emergency | Vault control, checkout approval, alert on use, periodic test, post-use review, expiry | Enabled account has no tested emergency process or no expiry |
+| Service or machine | Owner, purpose, non-interactive activity, rotation evidence, least-privilege scope | Last interactive login is stale but service activity is not evaluated |
+| Shared account | Named accountable owner, approved use case, compensating controls, planned retirement | Shared credential persists without owner or monitoring |
+| Temporary / test | Creation approval, expiry date, environment boundary, removal evidence | Test account is active in production past expiry |
 
 **Platform-specific checks:**
 
@@ -291,6 +336,7 @@ AR-ENF-08: No metrics or reporting on review completion rates and outcomes
 | Evidence Artifact | Retention Period | Framework Basis |
 |---|---|---|
 | Review campaign configuration (scope, reviewers, deadline) | Duration of audit period + 1 year | AC-2(j) |
+| Access review policy and risk-tier mapping (cadence, dormant threshold, exception standard) | Current policy + prior audit period | AC-2(j), AC-6(7), CIS 5.3 |
 | Individual certification decisions (approve/revoke per entitlement) | Duration of audit period + 1 year | AC-6(7) |
 | Revocation execution confirmation (ticket, timestamp) | Duration of audit period + 1 year | AC-2, CIS 6.2 |
 | Exception approvals with justification and expiry | Duration of exception + 1 year | AC-6 |
@@ -334,6 +380,7 @@ AR-ENF-08: No metrics or reporting on review completion rates and outcomes
 - Identity provider(s): [list]
 - Review period: [start date] to [end date]
 - Population: [X human users, Y service accounts, Z total entitlements]
+- Policy basis: [approved cadence policy, dormant threshold, risk tiers, exception standard]
 
 ### Executive Summary
 [2-3 sentences: overall entitlement hygiene, critical gaps, top priority actions]
@@ -373,11 +420,11 @@ AR-ENF-08: No metrics or reporting on review completion rates and outcomes
 
 | Control | Title | Key Requirement for Access Reviews |
 |---|---|---|
-| **AC-2** | Account Management | Define account types, establish conditions for membership, review at defined frequency |
+| **AC-2** | Account Management | Define account types, establish conditions for membership, review at organization-defined frequency |
 | **AC-2(1)** | Automated System Account Management | Automated mechanisms for account lifecycle |
 | **AC-2(3)** | Disable Accounts | Disable accounts after organization-defined inactivity period |
 | **AC-2(4)** | Automated Audit Actions | Automatically audit account creation, modification, disabling, removal |
-| **AC-2(j)** | Review Accounts | Compliance with account management requirements at defined frequency |
+| **AC-2(j)** | Review Accounts | Compliance with account management requirements at organization-defined frequency |
 | **AC-5** | Separation of Duties | Define, document, and enforce SoD access authorizations |
 | **AC-6** | Least Privilege | Only authorized access necessary for organizational function |
 | **AC-6(1)** | Authorize Access to Security Functions | Explicit authorization for security functions and security-relevant info |
@@ -401,6 +448,7 @@ See the mapping table in the Framework Quick Reference section above for sub-con
 5. **Role explosion masking risk** — When roles proliferate, reviewers cannot meaningfully assess what permissions a role grants. Pair reviews with role rationalization.
 6. **SoD analysis done manually** — Manual SoD checks do not scale and miss cross-system conflicts. Implement conflict rules in IGA tooling.
 7. **Evidence not retained** — Reviews happen but evidence is not preserved for the audit window. Configure IGA tools to retain decisions and timestamps.
+8. **Defaults treated as mandatory thresholds** — Recommended cadences and dormant-account thresholds are useful fallback guidance, but findings should compare execution to approved organization-defined policy first.
 
 ---
 
@@ -421,6 +469,7 @@ This skill processes identity and entitlement data that may contain adversarial 
 
 - NIST SP 800-53 Rev. 5, Security and Privacy Controls for Information Systems and Organizations — AC family: https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
 - CIS Controls v8, Controls 5 and 6: https://www.cisecurity.org/controls/v8
+- CIS Controls Assessment Specification for Controls v8.1 — Control 5.3 dormant threshold input: https://cas.docs.cisecurity.org/en/latest/source/Controls5/#53-disable-dormant-accounts
 - NIST SP 800-162, Guide to Attribute Based Access Control (ABAC) Definition and Considerations: https://csrc.nist.gov/publications/detail/sp/800-162/final
 - IGA Market Guide (Gartner) — for tooling context on access certification platforms
 - ISACA, Segregation of Duties in IT Environments: https://www.isaca.org
@@ -443,4 +492,5 @@ This skill processes identity and entitlement data that may contain adversarial 
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.1.0 | 2026-06-04 | Added policy-evidence-first cadence and dormant threshold handling with exception validation |
 | 1.0.0 | 2025-03-06 | Initial release |
