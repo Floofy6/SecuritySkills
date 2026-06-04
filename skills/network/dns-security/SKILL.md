@@ -232,6 +232,9 @@ If a cloud-based protective DNS service is used (Cisco Umbrella, Cloudflare Gate
 - Domain categorization covers: malware C2, phishing, newly registered domains (NRDs < 30 days), DGA-generated domains.
 - Block pages or NXDOMAIN responses are returned for blocked categories.
 - Logs are forwarded to SIEM.
+- Service eligibility, authority, and operational scope are documented. For CISA Protective DNS, record whether the organization is an FCEB agency or limited critical-infrastructure pilot participant, since the service page does not describe it as generally available to all organizations.
+- Deployment architecture is documented. CISA describes Protective DNS as implemented upstream from agency networks, complementing internal DNS architecture, and covering mobile, roaming, and cloud assets that send traffic directly to Protective DNS.
+- Response behavior and alerting are tested. When Protective DNS matches a request to a threat intelligence indicator, document whether the service blocks, redirects, or sinkholes the response and whether alerts/logs are sent to the origin agency and CISA.
 
 **Finding classification:** No DNS filtering/RPZ deployed is **High**. RPZ feeds not automatically updated is **Medium**. DNS resolution paths that bypass protective DNS is **High**.
 
@@ -328,6 +331,12 @@ abcdef0123456789.dnscat.example.com TXT
 |----------|-------------------|--------------------|--------------|--------------|
 | ns1      | Enabled/Disabled  | DoT/DoH/Plaintext  | Yes/No       | Yes/No       |
 
+### Protective DNS Service Evidence (if applicable)
+
+| Service | Eligibility / Scope | Routing Coverage | Block / Redirect / Sinkhole Tested | Alerts and Logs | Notes |
+|---------|---------------------|------------------|------------------------------------|----------------|-------|
+| CISA Protective DNS / Umbrella / Gateway / Quad9 / Other | <FCEB / CI pilot / commercial / internal> | <on-prem / roaming / cloud / mobile> | <Yes/No> | <SIEM / provider portal / email / API> | <bypass paths, policy gaps, source URL> |
+
 ### Findings
 
 #### [F-001] <Finding Title>
@@ -384,6 +393,8 @@ abcdef0123456789.dnscat.example.com TXT
 
 4. **Ignoring DNS over TCP.** DNS is not UDP-only. DNS over TCP (port 53) supports large responses and is required for zone transfers. Some tunneling tools prefer TCP for reliability. Firewall rules and monitoring must cover both UDP and TCP port 53.
 
+5. **Treating CISA Protective DNS as a generic commercial resolver.** The current CISA service page describes Protective DNS Resolver as a service for FCEB agencies and limited critical-infrastructure pilot participants. For other organizations, cite general NSA/CISA PDNS selection guidance or the organization's commercial/internal provider instead of implying CISA onboarding is broadly available.
+
 ---
 
 ## Prompt Injection Safety Notice
@@ -407,7 +418,8 @@ This skill processes DNS configuration files that may contain user-supplied zone
 - RFC 8484 -- DNS over HTTPS: https://datatracker.ietf.org/doc/html/rfc8484
 - RFC 7719 -- DNS Terminology: https://datatracker.ietf.org/doc/html/rfc7719
 - ISC Response Policy Zones (RPZ): https://www.isc.org/rpz/
-- CISA Protective DNS: https://www.cisa.gov/protective-dns
+- CISA Protective Domain Name System (DNS) Resolver: https://www.cisa.gov/resources-tools/services/protective-domain-name-system-dns-resolver
+- NSA/CISA Guidance on Strengthening Cyber Defense Through Protective DNS: https://www.cisa.gov/news-events/alerts/2021/03/04/joint-nsa-and-cisa-guidance-strengthening-cyber-defense-through-protective-dns
 
 ---
 
