@@ -553,7 +553,7 @@ Glob: **/security_architecture*
 
 **OWASP Agentic AI Threats:** These threat categories are maintained by the OWASP GenAI Security Project working group. The AG01-AG10 numbering and scope used here reflect the documented threat areas. Verify current numbering and content against the latest published version at [genai.owasp.org](https://genai.owasp.org).
 
-**NIST AI RMF 1.0:** Published January 2023. Organized around four functions: GOVERN (policies, culture), MAP (context, risk identification), MEASURE (risk analysis), MANAGE (risk response, monitoring). Reference: [nist.gov/aiframework](https://www.nist.gov/aiframework)
+**NIST AI RMF 1.0:** Published January 2023. Organized around four functions: GOVERN (policies, culture), MAP (context, risk identification), MEASURE (risk analysis), MANAGE (risk response, monitoring). Reference: [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework)
 
 ---
 
@@ -575,7 +575,7 @@ Glob: **/security_architecture*
 
 1. OWASP GenAI Security Project -- Agentic AI Threat Categories -- https://genai.owasp.org
 2. OWASP Top 10 for LLM Applications 2025 -- https://owasp.org/www-project-top-10-for-large-language-model-applications/
-3. NIST AI Risk Management Framework 1.0 (January 2023) -- https://www.nist.gov/aiframework
+3. NIST AI Risk Management Framework 1.0 (January 2023) -- https://www.nist.gov/itl/ai-risk-management-framework
 4. NIST SP 800-53 Rev. 5 -- Security and Privacy Controls (AC-6: Least Privilege, AU-2: Event Logging, AU-10: Non-repudiation) -- https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
 5. MITRE ATLAS -- Adversarial Threat Landscape for AI Systems -- https://atlas.mitre.org
 6. Rehberger, J. "Prompt Injection: Exfiltrating Data via Tool Calls" (2023) -- https://embracethered.com

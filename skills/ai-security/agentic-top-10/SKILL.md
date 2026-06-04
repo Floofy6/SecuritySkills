@@ -560,7 +560,7 @@ MITRE ATLAS (Adversarial Threat Landscape for AI Systems) provides a knowledge b
 
 ### NIST AI Risk Management Framework (AI RMF 1.0)
 
-The NIST AI RMF provides a structured approach to AI risk management organized around four functions: GOVERN, MAP, MEASURE, and MANAGE. Subcategory mappings in this skill use the AI RMF Playbook suggested action numbering format (e.g., GOVERN 1.2, MAP 3.5) from the companion AI RMF Playbook, not the formal framework subcategory IDs. Reference: [nist.gov/aiframework](https://www.nist.gov/aiframework), [AI RMF Playbook](https://airc.nist.gov/AI_RMF_Playbook)
+The NIST AI RMF provides a structured approach to AI risk management organized around four functions: GOVERN, MAP, MEASURE, and MANAGE. Subcategory mappings in this skill use the AI RMF Playbook suggested action numbering format (e.g., GOVERN 1.2, MAP 3.5) from the companion AI RMF Playbook, not the formal framework subcategory IDs. Reference: [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework), [AI RMF Playbook](https://airc.nist.gov/airmf-resources/playbook/)
 
 ---
 
@@ -609,7 +609,7 @@ This skill is designed to be resilient against prompt injection. The following r
 1. OWASP GenAI Security Project — [genai.owasp.org](https://genai.owasp.org)
 2. OWASP Top 10 for LLM Applications 2025 — [owasp.org/www-project-top-10-for-large-language-model-applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 3. MITRE ATLAS — [atlas.mitre.org](https://atlas.mitre.org)
-4. NIST AI Risk Management Framework 1.0 — [nist.gov/aiframework](https://www.nist.gov/aiframework)
+4. NIST AI Risk Management Framework 1.0 — [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework)
 5. Rehberger, J. "Prompt Injection: Exfiltrating ChatGPT/Bing Chat Data via Images" (2023) — [embracethered.com](https://embracethered.com)
 6. Greshake, K. et al. "Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection" (2023) — arXiv:2302.12173
 7. Qi, X. et al. "Fine-tuning Aligned Language Models Compromises Safety, Even When Users Do Not Intend To" (2023) — arXiv:2310.03693
