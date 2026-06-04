@@ -13,7 +13,7 @@ phase: [assess, operate]
 frameworks: [ISO/IEC-27001:2022, ISO/IEC-27002:2022]
 difficulty: intermediate
 time_estimate: "90-180min"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -187,6 +187,17 @@ Evaluate the risk assessment process:
 - Risk treatment plan is formulated and approved by risk owners
 - Residual risk is accepted by risk owners
 
+For each risk treatment decision, capture traceability evidence:
+
+| Field | Required Evidence |
+|-------|-------------------|
+| Risk ID / requirement driver | Risk register ID, legal/statutory requirement, customer contract, supplier obligation, or management objective |
+| Treatment option | Mitigate, accept, avoid, transfer, or combination |
+| Selected controls | Annex A control IDs and any non-Annex controls used for treatment |
+| Treatment action status | Owner, due date, status, blockers, and evidence of completion |
+| Residual risk approval | Risk owner, approval date, expiry/review date, and accepted residual risk level |
+| Evidence source | Policy, design evidence, operating evidence, test evidence, audit record, or supplier assurance |
+
 ---
 
 ### Step 4: Annex A Control Assessment
@@ -316,10 +327,23 @@ Use the following maturity scoring:
 Build or review the SoA. For each of the 93 Annex A controls, document:
 
 ```
-| Control ID | Control Title | Applicable? | Justification (if excluded) | Implementation Status | Maturity Score | Gap Description |
+| Control ID | Control Title | Applicable? | Requirement Driver / Risk ID | Treatment Option | Control Owner | Evidence Type / Source | Evidence Freshness | Residual Risk Approval | Exclusion Approval / Review Date | Implementation Status | Maturity Score | Gap Description |
 ```
 
 Exclusions are permitted only where the control is genuinely not applicable to the ISMS scope. A control cannot be excluded solely because it is difficult to implement.
+
+Treat SoA entries without risk, requirement, or approval traceability as incomplete. Included controls should tie back to at least one risk treatment decision, legal/statutory requirement, customer/contractual obligation, interested-party requirement, or approved baseline. Excluded controls should record the approving role, scope affected, residual-risk impact, and next review date.
+
+Use explicit Not Evaluable reasons when traceability cannot be proven:
+
+| Reason Code | Meaning |
+|-------------|---------|
+| ISO-NE-01 | Missing risk or requirement driver for an included control |
+| ISO-NE-02 | Missing treatment option or linked risk-treatment action |
+| ISO-NE-03 | Missing control owner or evidence owner |
+| ISO-NE-04 | Evidence is stale, policy-only, or not tied to operating effectiveness |
+| ISO-NE-05 | Residual-risk acceptance is missing, expired, or not approved by the risk owner |
+| ISO-NE-06 | Exclusion lacks approval, scope boundary, residual-risk impact, or review date |
 
 ---
 
@@ -391,10 +415,10 @@ Classify each finding using the following severity levels:
 
 ### A.5 Organizational Controls (37 controls)
 
-| Control | Title | Applicable | Maturity | Gap | Priority |
-|---------|-------|-----------|----------|-----|----------|
-| A.5.1 | Policies for information security | Yes | 3 | [gap] | [H/M/L] |
-| ... | ... | ... | ... | ... | ... |
+| Control | Title | Applicable | Driver / Risk ID | Treatment Option | Owner | Evidence Type / Freshness | Residual Risk Approval | Maturity | Gap | Priority |
+|---------|-------|-----------|------------------|------------------|-------|---------------------------|------------------------|----------|-----|----------|
+| A.5.1 | Policies for information security | Yes | [R-001 / contract / baseline] | [mitigate] | [owner] | [policy + operating evidence, YYYY-MM-DD] | [owner/date or N/A] | 3 | [gap] | [H/M/L] |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |
 
 ### A.6 People Controls (8 controls)
 [same table format]
@@ -407,8 +431,20 @@ Classify each finding using the following severity levels:
 
 ## Statement of Applicability Summary
 - Controls applicable: [count] / 93
-- Controls excluded: [count] — [list with justification]
+- Controls excluded: [count] — [list with justification, approver, scope impact, and next review date]
 - Average maturity of applicable controls: [score] / 5.0
+
+## Risk Treatment Traceability Matrix
+
+| Risk / Requirement ID | Driver Type | Treatment Option | Selected Controls | Open Actions | Due Date | Owner | Residual Risk Approval | Evidence Gaps |
+|-----------------------|-------------|------------------|-------------------|--------------|----------|-------|------------------------|---------------|
+| [R-001] | [risk/legal/contract/baseline] | [mitigate/accept/avoid/transfer] | [A.5.1, A.8.15] | [action/status] | [date] | [risk owner] | [accepted by/date/expires] | [none or ISO-NE-*] |
+
+## SoA Traceability Gaps
+
+| Control ID | Missing Traceability | Not Evaluable Reason | Required Follow-up |
+|------------|----------------------|----------------------|--------------------|
+| [A.x.y] | [risk driver/evidence owner/residual approval] | [ISO-NE-01] | [add risk linkage and owner approval] |
 
 ## Risk Assessment Findings
 [Summary of risk methodology review, gaps in risk register, treatment plan status]
@@ -512,6 +548,8 @@ Each control in ISO 27002:2022 is tagged with five attributes:
 4. **Neglecting the 11 new controls introduced in the 2022 revision.** Organizations transitioning from 2013 often miss that controls like A.5.7 (Threat intelligence), A.5.23 (Cloud services security), A.8.9 (Configuration management), A.8.11 (Data masking), A.8.12 (Data leakage prevention), and A.8.16 (Monitoring activities) require explicit consideration in the SoA even if determined not applicable.
 
 5. **Scope exclusions without adequate justification.** Excluding organizational units, locations, or controls from ISMS scope requires documented justification demonstrating the exclusion does not affect the organization's ability or responsibility to provide information security. Auditors will challenge poorly justified exclusions.
+
+6. **Accepting SoA rows without risk-treatment traceability.** An SoA row marked "applicable" or "implemented" is not enough by itself. Each included control should point to a risk, legal/contractual requirement, approved baseline, treatment option, evidence owner, and residual-risk decision. Each exclusion should identify the approver, affected scope, residual-risk impact, and next review date.
 
 ---
 
