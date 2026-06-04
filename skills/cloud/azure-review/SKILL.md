@@ -13,7 +13,7 @@ phase: [assess, operate]
 frameworks: [CIS-Azure-v2.1.0]
 difficulty: intermediate
 time_estimate: "60-90min"
-version: "1.0.0"
+version: "1.1.0"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -27,7 +27,7 @@ argument-hint: "[target-file-or-directory]"
 
 This skill performs a structured security assessment of Azure environments against the **CIS Microsoft Azure Foundations Benchmark v2.1.0**. The benchmark is organized into nine sections covering identity management, security center, storage, database services, logging and monitoring, networking, virtual machines, Key Vault, and App Service. Each recommendation is evaluated by inspecting infrastructure-as-code definitions (Terraform, Bicep, ARM templates), Azure CLI output, or configuration files available in the repository.
 
-The CIS Azure Foundations Benchmark v2.1.0 provides prescriptive guidance across nine domains. This skill evaluates each applicable control and produces a findings report with CIS recommendation IDs, severity ratings, and actionable remediation steps.
+The CIS Azure Foundations Benchmark v2.1.0 provides prescriptive guidance across nine domains. This skill evaluates each applicable control and produces a findings report with CIS recommendation IDs, severity ratings, and actionable remediation steps. Identity findings must treat MFA as evidence-driven rather than binary: verify Security Defaults versus Conditional Access, authentication strength for privileged roles and sensitive apps, external-user MFA trust, break-glass exclusions, and workload-identity coverage before marking a control pass or fail.
 
 ---
 
@@ -86,6 +86,8 @@ Evaluate all Azure configurations against CIS Azure v2.1.0 Sections 1 through 9,
 
 For detailed CIS benchmark checklist items with specific Terraform patterns, Bicep examples, and configuration checks for all nine sections, see [benchmark-checklist.md](benchmark-checklist.md) in this skill directory.
 
+For identity controls, do not treat "MFA enabled" as a single boolean. Review Conditional Access policy state, grant controls, authentication strength references, authentication method policy scope, external-user MFA trust, emergency access exclusions, and workload identity controls where applicable.
+
 ---
 
 
@@ -102,7 +104,7 @@ Produce the final report using the structure defined in the Output Format sectio
 | Severity | Definition | Examples |
 |----------|-----------|----------|
 | **Critical** | Immediate risk of data breach or unauthorized access | NSGs open to 0.0.0.0/0 on RDP/SSH, SQL databases publicly accessible, Defender for Cloud disabled |
-| **High** | Significant security gap that materially weakens posture | Missing MFA enforcement, storage accounts with public access, Key Vault without purge protection |
+| **High** | Significant security gap that materially weakens posture | Missing MFA enforcement, privileged roles without phishing-resistant authentication strength, storage accounts with public access, Key Vault without purge protection |
 | **Medium** | Control gap that should be addressed in normal cycle | Missing activity log alerts, soft delete not enabled, TLS below 1.2 |
 | **Low** | Hardening recommendation or defense-in-depth measure | HTTP/2 not enabled, FTP not fully disabled, missing CMK on non-sensitive storage |
 | **Informational** | Best practice observation, no direct security impact | Naming conventions, tag policies, documentation gaps |
@@ -119,6 +121,16 @@ Produce the final report using the structure defined in the Output Format sectio
 - Date: <assessment date>
 - Framework: CIS Microsoft Azure Foundations Benchmark v2.1.0
 - Files reviewed: <list of IaC files>
+
+### Identity Assurance Evidence
+- Security Defaults state: <enabled/disabled/not observed>
+- Conditional Access MFA policies: <policy names, state, scope, grant controls>
+- Privileged-role authentication strength: <phishing-resistant/passwordless/standard MFA/not observed>
+- Sensitive-app authentication strength: <policy names and covered apps>
+- Authentication method policy scope: <FIDO2, Windows Hello for Business, certificate-based auth, SMS/voice/push scope>
+- External-user access: <cross-tenant MFA trust, resource-tenant strength, guest method path>
+- Emergency access accounts: <excluded accounts, monitoring, vaulting, validation cadence>
+- Workload identities: <service principal policies, report-only/enforced state, risk/location controls>
 
 ### Executive Summary
 - Total CIS recommendations evaluated: <N>
@@ -175,7 +187,7 @@ Produce the final report using the structure defined in the Output Format sectio
 
 | Section | Domain | Key Focus Areas |
 |---------|--------|-----------------|
-| 1 | Identity and Access Management | Entra ID security defaults, MFA enforcement, Conditional Access policies, guest user management, PIM configuration |
+| 1 | Identity and Access Management | Entra ID security defaults, MFA enforcement, authentication strength, external-user MFA trust, workload identities, guest user management, PIM configuration |
 | 2 | Microsoft Defender for Cloud | Defender plan enablement (Servers, App Service, SQL, Storage, Containers, Key Vault, DNS, ARM), security contacts, auto-provisioning |
 | 3 | Storage Accounts | HTTPS enforcement, infrastructure encryption, public access, network rules, soft delete, CMK encryption, TLS version |
 | 4 | Database Services | SQL auditing, firewall rules, threat detection, SSL enforcement, TDE, Entra ID admin, Cosmos DB public access |
@@ -194,12 +206,15 @@ Produce the final report using the structure defined in the Output Format sectio
 
 ## Common Pitfalls
 
-1. **Confusing Entra ID Security Defaults with Conditional Access.** CIS 1.1.1 accepts either, but if Conditional Access is used, Security Defaults must be disabled. Do not flag this as a failure if equivalent CA policies exist.
+1. **Confusing Entra ID Security Defaults with Conditional Access.** CIS 1.1.1 accepts either, but if Conditional Access is used, Security Defaults must be disabled. Do not flag this as a failure if equivalent CA policies exist and they are enabled, scoped, and backed by authentication method evidence.
 2. **Missing Defender for Cloud plan coverage.** Each resource type (Servers, SQL, Storage, etc.) requires its own Defender plan enablement. A single `azurerm_security_center_subscription_pricing` resource only covers one type.
 3. **Overlooking `allow_nested_items_to_be_public` on storage accounts.** CIS 3.7 checks the account-level setting, not individual container access levels. The account setting must be `false` to prevent any container from being public.
 4. **NSG rules using service tags.** A rule with `source_address_prefix = "Internet"` is equivalent to `0.0.0.0/0`. Both must be flagged for CIS 6.1 and 6.2.
 5. **Key Vault purge protection is irreversible.** CIS 8.5 requires `purge_protection_enabled = true`. Note this cannot be disabled once enabled -- flag this for awareness during remediation.
 6. **App Service TLS version on both Linux and Windows.** Check `azurerm_linux_web_app` and `azurerm_windows_web_app` resources separately.
+7. **Treating MFA as method-agnostic.** `Require multifactor authentication` is not the same evidence as `Require authentication strength` with phishing-resistant methods for privileged roles or sensitive apps.
+8. **Ignoring external-user trust path.** Guest access can satisfy MFA in the home tenant or resource tenant depending on cross-tenant MFA trust and the authentication methods that satisfy the resource tenant's required strength.
+9. **Applying user MFA logic to workload identities.** Service principals cannot perform MFA; evaluate Conditional Access for workload identities, risk/location controls, and service principal sign-in evidence instead.
 
 ---
 
@@ -222,6 +237,11 @@ Produce the final report using the structure defined in the Output Format sectio
 - CIS Microsoft Azure Foundations Benchmark v2.1.0: https://www.cisecurity.org/benchmark/azure
 - Microsoft Defender for Cloud Documentation: https://learn.microsoft.com/en-us/azure/defender-for-cloud/
 - Microsoft Entra ID Security: https://learn.microsoft.com/en-us/entra/identity/
+- Microsoft Entra Conditional Access authentication strengths: https://learn.microsoft.com/en-us/entra/identity/authentication/concept-authentication-strengths
+- Microsoft Entra authentication strengths for external users: https://learn.microsoft.com/en-us/entra/identity/authentication/concept-authentication-strength-external-users
+- Microsoft Entra security defaults: https://learn.microsoft.com/en-us/entra/fundamentals/security-defaults
+- Microsoft Entra emergency access admin accounts: https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/security-emergency-access
+- Microsoft Entra Conditional Access for workload identities: https://learn.microsoft.com/en-us/entra/identity/conditional-access/workload-identity
 - Azure Storage Security: https://learn.microsoft.com/en-us/azure/storage/common/storage-security-guide
 - Azure Key Vault Best Practices: https://learn.microsoft.com/en-us/azure/key-vault/general/best-practices
 - Azure App Service Security: https://learn.microsoft.com/en-us/azure/app-service/overview-security
@@ -231,4 +251,5 @@ Produce the final report using the structure defined in the Output Format sectio
 
 ## Changelog
 
+- **1.1.0** -- Added authentication strength, external-user MFA trust, emergency access, and workload-identity evidence gates for identity reviews.
 - **1.0.0** -- Initial release. Full coverage of CIS Microsoft Azure Foundations Benchmark v2.1.0 sections 1 through 9.

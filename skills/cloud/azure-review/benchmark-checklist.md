@@ -21,9 +21,11 @@ resource "azuread_authentication_strength_policy" { ... }
 
 **Note:** Security Defaults should be disabled ONLY when Conditional Access policies provide equivalent or stronger controls.
 
+Do not fail a tenant solely because Security Defaults are disabled. Microsoft requires Security Defaults to be disabled when an organization implements replacement Conditional Access policies, and Conditional Access is the expected path for tenants that need granular control, exclusions, authentication strength, risk-based policy, or app-specific requirements. Instead, collect evidence that replacement policies are enabled, scoped to the relevant users/apps/roles, and enforce equivalent or stronger controls.
+
 #### CIS 1.1.2 -- Ensure that Multi-Factor Authentication is enabled for all privileged users
 
-Check for Conditional Access policies requiring MFA for admin roles:
+Check for Conditional Access policies requiring MFA or authentication strength for admin roles:
 
 ```hcl
 resource "azuread_conditional_access_policy" {
@@ -38,6 +40,36 @@ resource "azuread_conditional_access_policy" {
 }
 ```
 
+**Authentication strength evidence for privileged roles and sensitive apps:**
+
+`built_in_controls = ["mfa"]` proves that a policy requires MFA, but it does not prove that privileged access requires phishing-resistant MFA. Microsoft Entra authentication strength is a separate Conditional Access grant control that specifies which authentication method combinations can satisfy access. For privileged roles and sensitive applications, collect the policy evidence below before marking the control as pass, fail, or not evaluable.
+
+| Evidence | What to Verify | Failure Pattern |
+|---|---|---|
+| Conditional Access policy state | Policy is `enabled`, not disabled or report-only, for privileged roles or sensitive apps | Report-only policy counted as enforcement |
+| Role/app scope | Global Administrator, Privileged Role Administrator, Security Administrator, Conditional Access Administrator, and other high-risk roles are included, or a documented equivalent privileged group is included | MFA policy only covers all users except admins, or misses privileged roles |
+| Grant control | Policy uses `Require authentication strength` for privileged roles/sensitive apps when phishing-resistant MFA is required | Plain `Require MFA` accepted as phishing-resistant |
+| Authentication strength | Built-in or custom strength allows phishing-resistant methods such as FIDO2 security keys, Windows Hello for Business/platform credentials, or certificate-based authentication | SMS, voice, or push-only methods allowed for highest-risk roles |
+| Authentication method policy | Users/groups in scope are enabled to register at least one allowed method in the authentication methods policy | CA policy requires a strength that users cannot satisfy |
+| Break-glass exclusion | Emergency accounts are intentionally excluded from lockout-prone CA policies and have separate monitoring, vaulting, and validation evidence | Break-glass accounts excluded with no owner, alerts, or test cadence |
+
+**Authentication strength checks to add to findings:**
+
+```text
+AZ-ID-STR-01: Privileged role policy requires generic MFA but not phishing-resistant authentication strength
+AZ-ID-STR-02: Authentication strength exists but authentication method policy does not enable any allowed method for scoped admins
+AZ-ID-STR-03: Conditional Access policy is report-only/disabled but counted as active MFA enforcement
+AZ-ID-STR-04: Sensitive app requires MFA but allows phishable methods where phishing-resistant strength is required
+AZ-ID-STR-05: Break-glass account exclusion lacks owner, vaulting, sign-in alerting, or periodic validation
+```
+
+**Provider/export patterns to review:**
+
+- Microsoft Graph Conditional Access exports with `grantControls.authenticationStrength` or `builtInControls`.
+- Terraform AzureAD provider resources such as `azuread_conditional_access_policy` and `azuread_authentication_strength_policy`.
+- Authentication methods policy exports showing FIDO2, Windows Hello for Business/platform credential, certificate-based authentication, Temporary Access Pass bootstrap, SMS, voice, and push scope.
+- Conditional Access policy state fields such as `enabled`, `disabled`, or `enabledForReportingButNotEnforced`.
+
 #### CIS 1.1.3 -- Ensure that Multi-Factor Authentication is enabled for all non-privileged users
 
 Verify MFA requirement extends to all users, not just admins.
@@ -45,6 +77,35 @@ Verify MFA requirement extends to all users, not just admins.
 #### CIS 1.1.4 -- Ensure that 'Allow users to remember multi-factor authentication on devices they trust' is Disabled
 
 Check for MFA trust settings that weaken the control.
+
+**External-user MFA trust and authentication strength:**
+
+For guests, partners, and B2B direct connect users, a simple "require MFA" policy does not prove that the resource tenant receives the expected authentication strength. Microsoft Entra evaluates Conditional Access authentication strength for external users together with cross-tenant MFA trust settings.
+
+| Evidence | What to Verify | Failure Pattern |
+|---|---|---|
+| Cross-tenant access settings | Whether inbound MFA trust is enabled for the external tenant or default settings | Reviewer assumes home-tenant MFA is always trusted |
+| Resource tenant CA policy | Sensitive apps require the intended authentication strength for external users | Guest access only has generic MFA or no app-specific strength |
+| Home-tenant method compatibility | Trusted home-tenant claim satisfies the resource tenant's required strength | Home tenant uses methods not accepted by the strength |
+| Resource-tenant registration path | If MFA trust is disabled, external users can satisfy MFA in the resource tenant using allowed methods | User is challenged but has no usable method registration path |
+| External-user exceptions | Exclusions are approved, time-bounded, and monitored | Broad guest exclusions bypass MFA without owner or expiry |
+
+```text
+AZ-ID-EXT-01: External users access sensitive app with generic MFA but no authentication strength evidence
+AZ-ID-EXT-02: Cross-tenant MFA trust enabled without evidence that trusted methods satisfy resource-tenant strength
+AZ-ID-EXT-03: MFA trust disabled but resource-tenant registration path for external users is missing
+AZ-ID-EXT-04: Guest or partner exclusion bypasses MFA/authentication strength without owner, expiry, or monitoring
+```
+
+**Workload identity edge case:**
+
+Workload identities and service principals cannot perform MFA and should not be evaluated as if they were users. Review Conditional Access for workload identities separately when service principals access sensitive resources.
+
+```text
+AZ-ID-WID-01: Service principal or workload identity has sensitive access but no workload identity Conditional Access, risk, location, or lifecycle evidence
+AZ-ID-WID-02: User-scoped MFA policy is incorrectly treated as covering service principals
+AZ-ID-WID-03: Workload identity policy is report-only and counted as enforcement
+```
 
 ### CIS 1.2 -- Conditional Access Policies
 
