@@ -13,7 +13,7 @@ phase: [operate]
 frameworks: [CIS-Controls-v8, NIST-SP-800-41-Rev1]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.0"
+version: "1.1.0"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -254,6 +254,34 @@ Egress filtering prevents compromised internal hosts from establishing unrestric
 
 ---
 
+#### 2.8 Object, Service Group, and NAT Expansion
+
+Firewall policies often reference aliases instead of concrete traffic criteria. Before making any exposure, default-deny, shadowing, or egress conclusion, expand address objects, nested address groups, service groups, application defaults, FQDN objects, dynamic objects, and NAT/VIP translations into the effective source, destination, protocol, and port set.
+
+**What to verify:**
+
+- Address objects and nested address groups are resolved to CIDRs, IP ranges, host addresses, or FQDN records before any/any and shadow analysis.
+- Service groups are expanded to explicit protocol/port tuples, including TCP, UDP, ICMP, ranges, and vendor-specific "application-default" or "any service" behavior.
+- DNAT, VIP, static NAT, and destination port translations are joined to the firewall policy so public exposure is evaluated in both pre-translation and post-translation views.
+- SNAT and source NAT pools are joined to egress rules so source identity, owner attribution, logging, and outbound allowlists are evaluated against the effective translated source.
+- Dynamic address groups, external dynamic lists, and FQDN objects include the membership source, last resolution timestamp, and evidence that the membership was current at assessment time.
+- Shadowed-rule analysis compares expanded CIDR and service sets, not only object names or comments.
+
+**Evidence codes to use in findings:**
+
+| Code | Missing Evidence | Risk |
+|------|------------------|------|
+| FW-EXPAND-01 | Address objects, address groups, or nested groups are not expanded before exposure or shadow analysis. | Alias names can hide broader networks, stale assets, or sensitive destinations. |
+| FW-EXPAND-02 | Service or application groups are not expanded to protocols, ports, ranges, or application defaults. | A rule that appears limited may allow additional protocols or high-risk ports. |
+| FW-NAT-01 | DNAT, VIP, static NAT, or destination port translations are not joined to the policy before exposure review. | Internet-facing access to internal services can be missed or misclassified. |
+| FW-NAT-02 | SNAT, NAT pools, or egress translations are not joined to outbound review. | Source attribution, owner mapping, and outbound allowlists may be wrong. |
+| FW-DYN-01 | FQDN, dynamic object, or external list membership lacks a timestamp and source. | Effective policy can change after the exported configuration was reviewed. |
+| FW-SHADOW-01 | Shadow analysis is performed on aliases instead of expanded CIDR and service sets. | Shadowed denies and duplicate permits can be missed. |
+
+**Finding classification:** Missing object or NAT expansion is **High** when it affects internet-facing rules, sensitive zones, management services, or default-deny/shadowing conclusions. It is **Medium** for internal-only rules with compensating segmentation evidence. Missing dynamic or FQDN freshness evidence is **Medium**, or **High** when the object controls public or privileged access.
+
+---
+
 ### Step 3: Compile Assessment Report
 
 Produce the final report using the following structure.
@@ -265,8 +293,8 @@ Produce the final report using the following structure.
 | Severity | Definition |
 |----------|-----------|
 | **Critical** | Missing default deny; any/any inbound rules. Immediate exploitation risk. |
-| **High** | Overly permissive outbound rules; shadowed deny rules; no logging on deny actions; missing anti-spoofing; unused rules to decommissioned resources. |
-| **Medium** | Shadowed permit rules; missing egress DNS restriction; unused rules (active resources); missing logging on sensitive permits; missing stealth rules. |
+| **High** | Overly permissive outbound rules; shadowed deny rules; no logging on deny actions; missing anti-spoofing; unused rules to decommissioned resources; missing NAT/object expansion for internet-facing or sensitive-zone conclusions. |
+| **Medium** | Shadowed permit rules; missing egress DNS restriction; unused rules (active resources); missing logging on sensitive permits; missing stealth rules; missing NAT/object expansion for internal-only rules; stale dynamic/FQDN object evidence. |
 | **Low** | Rule documentation gaps; suboptimal rule ordering with no current security impact; cosmetic rule base issues. |
 
 ---
@@ -298,6 +326,8 @@ Produce the final report using the following structure.
 - **Rule(s):** <rule number(s) or line(s)>
 - **Description:** <what was found>
 - **Evidence:** <specific rule text or configuration snippet>
+- **Expanded Evidence:** <resolved object/service/NAT view, or "not available">
+- **Confidence:** High / Medium / Low based on object, NAT, and runtime membership evidence
 - **Remediation:** <concrete fix with example>
 
 ### Default Deny Status
@@ -306,9 +336,14 @@ Produce the final report using the following structure.
 | Inbound   | Pass/Fail | <rule reference> |
 | Outbound  | Pass/Fail | <rule reference> |
 
+### Object and NAT Expansion Status
+| Rule/Policy | Objects Expanded | Service Groups Expanded | NAT/VIP Joined | Dynamic/FQDN Timestamp | Effective Source | Effective Destination | Effective Service | Confidence |
+|-------------|------------------|-------------------------|----------------|------------------------|------------------|-----------------------|-------------------|------------|
+| <rule id> | Yes/No/Partial | Yes/No/Partial | Yes/No/N/A | <timestamp/source or missing> | <expanded source> | <expanded destination> | <protocol/port set> | High/Medium/Low |
+
 ### Shadowed Rules Summary
-| Shadowed Rule | Position | Shadowing Rule | Position | Impact |
-|---------------|----------|----------------|----------|--------|
+| Shadowed Rule | Position | Shadowing Rule | Position | Expanded Criteria | Impact |
+|---------------|----------|----------------|----------|-------------------|--------|
 
 ### Egress Filtering Status
 | Protocol/Port | Restricted | Authorized Destinations |
@@ -361,6 +396,12 @@ Produce the final report using the following structure.
 
 5. **Conflating network ACLs with security groups in cloud environments.** In AWS, NACLs are stateless and operate at the subnet level; security groups are stateful and operate at the instance level. Both must be audited. A permissive NACL can undermine restrictive security group rules for responses.
 
+6. **Auditing aliases instead of expanded objects.** Object names such as `DMZ_WEB`, `Partner-Allow`, or `Web-Services` can hide broad CIDRs, nested groups, port ranges, or "any" service entries. Resolve them before deciding whether a rule is least-privilege or shadowed.
+
+7. **Checking only pre-NAT or only post-NAT addresses.** DNAT and VIP rules can expose internal services through public addresses, while SNAT can hide the real internal source. Join NAT rules with security policy before drawing exposure, ownership, or egress conclusions.
+
+8. **Treating FQDN and dynamic objects as static.** Dynamic groups, external lists, and FQDN objects can change without a full policy rewrite. Record the source and resolution timestamp so the finding reflects the effective policy at assessment time.
+
 ---
 
 ## Prompt Injection Safety Notice
@@ -381,9 +422,15 @@ This skill processes firewall configurations that may contain user-supplied comm
 - NIST SP 800-41 Rev 1, Guidelines on Firewalls and Firewall Policy: https://csrc.nist.gov/publications/detail/sp/800-41/rev-1/final
 - NIST SP 800-41 Rev 1 (PDF): https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-41r1.pdf
 - CIS Benchmarks (platform-specific firewall hardening): https://www.cisecurity.org/cis-benchmarks
+- Palo Alto Networks Policy Objects: https://docs.paloaltonetworks.com/network-security/security-policy/administration/objects
+- Palo Alto Networks Address Objects and FQDN References: https://docs.paloaltonetworks.com/network-security/security-policy/administration/objects/addresses/use-address-object-to-represent-ip-addresses
+- Palo Alto Networks Dynamic Address Groups: https://docs.paloaltonetworks.com/network-security/security-policy/administration/objects/address-groups
+- Palo Alto Networks NAT Policy Rules: https://docs.paloaltonetworks.com/ngfw/networking/nat/nat-policy-rules
+- Cisco Secure Firewall ASA Service Objects: https://ci.manage.security.cisco.com/content/docs/c_service-objects.html
 
 ---
 
 ## Changelog
 
+- **1.1.0** -- Added object, service group, dynamic/FQDN, and NAT/VIP expansion checks to reduce false exposure, shadowing, and egress conclusions.
 - **1.0.0** -- Initial release. Full coverage of CIS Controls v8 (4.4, 4.5) and NIST SP 800-41 Rev 1 firewall audit methodology.
