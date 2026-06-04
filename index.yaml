@@ -55,11 +55,11 @@ skills:
 
   - id: api-security
     name: "API Security Review"
-    tags: [appsec, api, rest, graphql]
+    tags: [appsec, api, rest, graphql, cache]
     role: [appsec-engineer, security-engineer]
     phase: [design, build, review]
     activity: [review, test]
-    frameworks: [OWASP-API-Security-2023, OWASP-ASVS]
+    frameworks: [OWASP-API-Security-2023, OWASP-ASVS, RFC-9111]
     difficulty: intermediate
     time_estimate: "20-40min"
     file: skills/appsec/api-security/SKILL.md

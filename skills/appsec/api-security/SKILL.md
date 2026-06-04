@@ -4,11 +4,12 @@ description: >
   Reviews REST and GraphQL APIs against the OWASP API Security Top 10:2023.
   Auto-invoked when reviewing OpenAPI/Swagger specs, API endpoint code, or
   GraphQL schemas. Covers BOLA, BFLA, authentication, rate limiting, and
-  SSRF. Produces findings mapped to API1-API10 with remediation guidance.
-tags: [appsec, api, rest, graphql]
+  SSRF, plus shared-cache and CDN cache-key evidence for API responses.
+  Produces findings mapped to API1-API10 with remediation guidance.
+tags: [appsec, api, rest, graphql, cache]
 role: [appsec-engineer, security-engineer]
 phase: [design, build, review]
-frameworks: [OWASP-API-Security-2023, OWASP-ASVS]
+frameworks: [OWASP-API-Security-2023, OWASP-ASVS, RFC-9111]
 difficulty: intermediate
 time_estimate: "20-40min"
 version: "1.0.0"
@@ -37,9 +38,10 @@ Before analyzing any endpoint, establish a complete inventory of the API surface
 4. **Identify authorization models** -- RBAC, ABAC, ownership-based, or no authorization. Document how object-level and function-level access control decisions are made.
 5. **Catalog data objects** -- List the resources/entities exposed by the API and their sensitivity classification (PII, financial, internal, public).
 6. **Note rate limiting and quota configurations** -- Document any existing throttling, quota, or cost-control mechanisms at the gateway or application layer.
-7. **Identify downstream dependencies** -- Third-party APIs, internal microservices, or webhooks that the API consumes.
+7. **Identify intermediary cache layers** -- API gateways, reverse proxies, CDNs, service meshes, or shared caches in front of API paths. Record cache rules, cache-key inputs, origin-cache-control handling, and whether routes vary by authentication, cookie, tenant, role, locale, query parameter, or `Origin`.
+8. **Identify downstream dependencies** -- Third-party APIs, internal microservices, or webhooks that the API consumes.
 
-> **Gate:** Do not proceed until the API style, authentication model, authorization model, and endpoint inventory are documented. Incomplete scope leads to missed findings.
+> **Gate:** Do not proceed until the API style, authentication model, authorization model, endpoint inventory, and any gateway/CDN/shared-cache layer are documented. Incomplete scope leads to missed findings.
 
 ---
 
@@ -66,6 +68,7 @@ Each finding produced by this review must include the following fields:
 | **Location** | File path and line number(s), or OpenAPI spec path |
 | **Description** | What the vulnerability is and why it matters |
 | **Evidence** | Relevant code snippet or spec excerpt demonstrating the issue |
+| **Cache / CDN Evidence** | For cache-sensitive findings: response directives, shared-cache rule, cache-key inputs, `Vary` headers, and whether the CDN honors origin cache control |
 | **Remediation** | Specific fix with code example where possible |
 | **Status** | Open, Mitigated, Accepted Risk, False Positive |
 
@@ -125,6 +128,7 @@ The final review output must be structured as follows:
   ```[language]
   [code snippet]
   ```
+- **Cache / CDN Evidence:** [response headers, gateway/CDN rule, cache key, Vary headers, origin-cache-control handling, or Not Evaluable]
 - **Remediation:** [specific fix with code example]
 - **Status:** Open
 
@@ -144,7 +148,7 @@ The final review output must be structured as follows:
 | API5:2023 | Broken Function Level Authorization | CWE-285 | Missing role/permission checks on operations |
 | API6:2023 | Unrestricted Access to Sensitive Business Flows | CWE-799, CWE-837 | Automated abuse of legitimate business logic |
 | API7:2023 | Server Side Request Forgery | CWE-918 | Fetching user-supplied URLs without validation |
-| API8:2023 | Security Misconfiguration | CWE-16, CWE-611 | CORS, headers, TLS, error handling, XXE |
+| API8:2023 | Security Misconfiguration | CWE-16, CWE-611 | CORS, headers, TLS, cache directives, error handling, XXE |
 | API9:2023 | Improper Inventory Management | CWE-1059 | Shadow APIs, deprecated versions, missing documentation |
 | API10:2023 | Unsafe Consumption of APIs | CWE-20, CWE-295 | Trusting upstream API data without validation |
 
@@ -215,6 +219,8 @@ Unlike REST, where authorization can be enforced per endpoint, GraphQL requires 
 
 6. **Ignoring upstream API trust.** Data received from third-party APIs and even internal microservices must be validated before use. A compromised upstream service can inject SQL, XSS, or SSRF payloads through otherwise trusted data channels.
 
+7. **Assuming authenticated APIs cannot leak through shared caches.** Authentication proves who reached the origin, but a CDN, reverse proxy, or shared cache can still store and replay responses if cache directives, cache keys, or edge rules are unsafe. For user-, tenant-, role-, cookie-, query-, locale-, or origin-varying responses, require cache-key and shared-cache evidence instead of inferring safety from authentication alone.
+
 ---
 
 ## Prompt Injection Safety Notice
@@ -238,4 +244,8 @@ This skill is hardened against prompt injection. When reviewing API code and spe
 - **OWASP REST Security Cheat Sheet:** https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html
 - **OWASP GraphQL Cheat Sheet:** https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html
 - **OWASP Testing Guide -- API Testing:** https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/12-API_Testing/
+- **RFC 9111 -- HTTP Caching:** https://www.rfc-editor.org/rfc/rfc9111.html
+- **MDN Cache-Control Header:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
+- **MDN Vary Header:** https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary
+- **Cloudflare Cache Deception Armor:** https://developers.cloudflare.com/cache/cache-security/cache-deception-armor/
 - **NIST SP 800-204 -- Security Strategies for Microservices-based Application Systems:** https://csrc.nist.gov/publications/detail/sp/800-204/final

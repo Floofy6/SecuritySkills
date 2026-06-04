@@ -450,6 +450,27 @@ DocumentBuilder builder = factory.newDocumentBuilder();
 Document doc = builder.parse(request.getInputStream());
 ```
 
+```http
+# VULNERABLE: Authenticated user-specific API response is cacheable by shared caches
+GET /api/v1/account/summary HTTP/1.1
+Authorization: Bearer user-a-token
+
+HTTP/1.1 200 OK
+Cache-Control: public, s-maxage=300
+Content-Type: application/json
+```
+
+```yaml
+# VULNERABLE: Tenant-specific response can be cached without tenant context
+edge_cache_rule:
+  path: /api/v1/reports/*
+  cache_everything: true
+  cache_key:
+    include_query_string: true
+    include_headers: []
+  origin_cache_control: disabled
+```
+
 ### Remediation Guidance
 
 - Configure CORS with an explicit allowlist of permitted origins. Never use `*` with `credentials: true`.
@@ -457,16 +478,71 @@ Document doc = builder.parse(request.getInputStream());
   - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
   - `X-Content-Type-Options: nosniff`
   - `Cache-Control: no-store` on sensitive responses
+- For authenticated, per-user, per-tenant, role-dependent, cookie-dependent, or private API responses, require `Cache-Control: no-store`, `private` with evidence that no shared cache stores the response, or an explicit shared-cache bypass rule.
+- For intentionally public and invariant API responses, document that the response does not vary by `Authorization`, cookies, tenant/account headers, role, private query parameters, locale, or `Origin` before allowing shared caching.
+- When responses vary by `Origin`, require `Vary: Origin` or equivalent CDN cache-key policy, especially when `Access-Control-Allow-Credentials: true` is used.
+- Verify CDN or gateway behavior in addition to origin response headers. Record whether edge rules honor origin `Cache-Control`, override origin directives, cache every API response, or change cache keys.
 - Return generic error messages in production. Log detailed errors server-side with correlation IDs.
 - Disable unnecessary HTTP methods. Return `405 Method Not Allowed` for unsupported methods.
 - Disable XML External Entity processing: set `factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)`.
 - Enforce TLS 1.2+ with strong cipher suites. Disable TLS 1.0 and 1.1.
 - Automate configuration scanning in CI/CD to detect drift from security baselines.
 
+### Shared Cache and CDN Evidence Gate
+
+Apply this gate to API8, and cross-reference API9/API10 when the deployed inventory or upstream API path includes an API gateway, reverse proxy, CDN, service mesh, or other shared cache.
+
+| API Path | Sensitive / Variant Basis | Cache-Control | Shared Cache Rule | Cache Key Inputs | Vary Headers | CDN Honors Origin? | Evidence | Confidence |
+|---|---|---|---|---|---|---|---|---|
+| `/api/v1/me` | Per-user | `no-store` | bypass | n/a | n/a | yes | response headers + edge rule | Strong |
+| `/api/v1/reports/*` | Tenant-specific | `public, s-maxage=300` | cache | path + query only | missing | unknown | config only | Not Evaluable |
+
+#### Cache Safety Status Handling
+
+| Response Type | Required Evidence | Safe Handling |
+|---|---|---|
+| **Sensitive / per-user / per-tenant** | Response headers plus gateway/CDN rule showing no shared storage, or cache key includes every variant dimension and the data is approved for shared caching | Prefer `Cache-Control: no-store` or explicit shared-cache bypass |
+| **Authorization-bearing request** | Evidence that shared caching is blocked, or that cached content is public/invariant and deliberately cacheable under RFC 9111 rules | Do not rely on authentication alone as cache-isolation proof |
+| **Origin-varying CORS response** | `Vary: Origin` or equivalent origin-aware cache-key policy; credentialed CORS must be reviewed carefully | Do not share one origin-specific response across unrelated origins |
+| **Public and invariant API response** | Documented non-sensitive content and proof it does not vary by auth, cookie, tenant, role, locale, private query, or origin | Shared caching can be acceptable with explicit TTL and purge controls |
+| **Missing CDN/gateway evidence** | Origin headers are known but edge cache rules, cache key, or origin-cache-control behavior are unavailable | Mark `Not Evaluable`; do not declare safe |
+
+#### Cache Review Patterns
+
+Look for these patterns in headers, OpenAPI examples, infrastructure-as-code, CDN rules, gateway policies, and reverse proxy config:
+
+```text
+Cache-Control
+s-maxage
+public
+private
+no-store
+no-cache
+Vary
+Authorization
+Cookie
+Origin
+X-Tenant
+cache_key
+edge_ttl
+origin_cache_control
+cache_everything
+```
+
+#### Cache Leakage Severity Guidance
+
+- **Critical/High:** A shared cache can serve one authenticated user or tenant another user's sensitive API response.
+- **Medium:** Sensitive or tenant-specific API paths are behind a CDN or gateway, but cache-key and shared-cache bypass evidence is missing.
+- **Low/Informational:** Public API responses are intentionally cacheable, but directive semantics or purge/TTL documentation are ambiguous.
+
 ### Review Checklist
 
 - [ ] CORS is configured with an explicit origin allowlist; wildcard is not used with credentials.
 - [ ] Security headers are present on all API responses.
+- [ ] Sensitive, authenticated, per-user, or per-tenant API responses have `no-store`, `private` with no shared storage, or explicit shared-cache bypass evidence.
+- [ ] Cache keys include every response-variant dimension such as `Authorization`, cookie/session identity, tenant/account header, role, private query parameter, locale, and `Origin`, or the endpoint is documented as public and invariant.
+- [ ] `Vary` headers or equivalent edge cache-key policies are present for origin-varying CORS responses.
+- [ ] CDN/gateway rules honor origin `Cache-Control` for API paths, or any override is documented with security rationale and test evidence.
 - [ ] Error responses in production are generic; no stack traces, SQL queries, or internal paths.
 - [ ] Only required HTTP methods are enabled per endpoint.
 - [ ] TLS 1.2+ is enforced with strong cipher suites.
