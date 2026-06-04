@@ -343,7 +343,7 @@ This file contains the detailed Trust Services Criteria evaluation questions, ev
 
 ## Additional Criteria
 
-Based on the scope determined in Step 1, evaluate the following additional criteria. Skip categories marked as out of scope.
+Based on the scope determined in Step 1, evaluate the following additional criteria. Skip categories marked as out of scope. If a category is out of the planned SOC 2 report scope but still matters because of privacy law, contracts, trust-center language, or product obligations, record it in the `Out-of-Scope but Relevant Observations` register instead of scoring it as a report-scope gap.
 
 ### Availability Criteria (A1.1-A1.3)
 
@@ -450,60 +450,46 @@ Score each criterion using the following maturity scale:
 
 Complete the following matrix for all in-scope criteria:
 
+For every scored row, add scope traceability fields so the score is tied to the selected report boundary, service commitments, and system requirements:
+
+- `Scope Status`: In Scope, Out of Scope, Out of Scope but Relevant, Conflicting, or Not Evaluable.
+- `Service Commitment`: Commitment ID or "mandatory Security criterion" for Common Criteria rows that are always in scope.
+- `System Requirement`: Requirement ID, policy, control objective, or system-description requirement supporting the commitment.
+- `Scope Source`: Management assertion, system description, MSA/SLA, trust-center claim, privacy notice, internal policy, or auditor scoping decision.
+- `Scope Confidence`: Strong, Partial, Conflicting, or Not Evaluable.
+
 ```
-| Criteria | Description (abbreviated)                     | Score | Key Gaps / Notes                   |
-|----------|-----------------------------------------------|-------|------------------------------------|
-| CC1.1    | Integrity and ethical values                  |       |                                    |
-| CC1.2    | Board oversight                               |       |                                    |
-| CC1.3    | Organizational structure and authority         |       |                                    |
-| CC1.4    | Commitment to competence                      |       |                                    |
-| CC1.5    | Accountability                                |       |                                    |
-| CC2.1    | Quality information for internal control      |       |                                    |
-| CC2.2    | Internal communication                        |       |                                    |
-| CC2.3    | External communication                        |       |                                    |
-| CC3.1    | Security objectives                           |       |                                    |
-| CC3.2    | Risk identification and analysis              |       |                                    |
-| CC3.3    | Fraud risk assessment                         |       |                                    |
-| CC3.4    | Change impact assessment                      |       |                                    |
-| CC4.1    | Ongoing and separate evaluations              |       |                                    |
-| CC4.2    | Deficiency communication                      |       |                                    |
-| CC5.1    | Control activity selection                    |       |                                    |
-| CC5.2    | General controls over technology              |       |                                    |
-| CC5.3    | Policy-based control deployment               |       |                                    |
-| CC6.1    | Logical access controls                       |       |                                    |
-| CC6.2    | User registration and authorization           |       |                                    |
-| CC6.3    | Access modification and removal               |       |                                    |
-| CC6.4    | Physical access controls                      |       |                                    |
-| CC6.5    | Access deprovisioning                         |       |                                    |
-| CC6.6    | External threat protection                    |       |                                    |
-| CC6.7    | Data transmission controls                    |       |                                    |
-| CC6.8    | Malicious software prevention                 |       |                                    |
-| CC7.1    | Vulnerability and configuration monitoring    |       |                                    |
-| CC7.2    | Anomaly monitoring                            |       |                                    |
-| CC7.3    | Security event evaluation                     |       |                                    |
-| CC7.4    | Incident response                             |       |                                    |
-| CC7.5    | Recovery activities                           |       |                                    |
-| CC8.1    | Change management                             |       |                                    |
-| CC9.1    | Risk mitigation activities                    |       |                                    |
-| CC9.2    | Vendor risk management                        |       |                                    |
-| A1.1     | Capacity management (if in scope)             |       |                                    |
-| A1.2     | Backup and recovery infrastructure            |       |                                    |
-| A1.3     | Recovery testing                              |       |                                    |
-| C1.1     | Confidential information identification       |       |                                    |
-| C1.2     | Confidential information disposal             |       |                                    |
-| PI1.1    | Processing information quality                |       |                                    |
-| PI1.2    | System input controls                         |       |                                    |
-| PI1.3    | System processing controls                    |       |                                    |
-| PI1.4    | System output controls                        |       |                                    |
-| PI1.5    | Data storage integrity                        |       |                                    |
-| P1.1     | Privacy notice                                |       |                                    |
-| P1.2     | Choice and consent                            |       |                                    |
-| P1.3     | Data collection                               |       |                                    |
-| P1.4     | Use, retention, and disposal                  |       |                                    |
-| P1.5     | Data subject access                           |       |                                    |
-| P1.6     | Disclosure and notification                   |       |                                    |
-| P1.7     | Data quality                                  |       |                                    |
-| P1.8     | Privacy monitoring and enforcement            |       |                                    |
+| Criteria | Description (abbreviated)             | Scope Status | Service Commitment | System Requirement | Scope Source | Scope Confidence | Score | Key Gaps / Notes |
+|----------|---------------------------------------|--------------|--------------------|--------------------|--------------|------------------|-------|------------------|
+| CC1.1    | Integrity and ethical values          | In Scope     | mandatory Security criterion | governance requirements | management assertion | Strong |       |                  |
+| CC6.1    | Logical access controls              | In Scope | SC-002 protected admin access | access policy + MFA/SSO requirements | MSA + system description | Strong |       |                  |
+| A1.2     | Backup and recovery infrastructure   | In Scope | SC-001 99.9% production availability | monitored backups + RTO/RPO | SLA + management assertion | Strong |       |                  |
+| P1.1     | Privacy notice                       | Out of Scope but Relevant | privacy program obligation | privacy notice maintenance | privacy notice | Partial | n/a | Track outside SOC 2 report scope |
+| CC6.2    | User registration and authorization  | In Scope | SC-002 protected admin access | tenant SSO support + user-entity assumption UEA-001 | admin guide + MSA | Partial |       |                  |
+```
+
+Repeat this extended row format for every applicable criterion listed in the official TSC set. Do not average or prioritize rows marked `Out of Scope` or `Out of Scope but Relevant` as SOC 2 report-scope gaps. Rows marked `Conflicting` or `Not Evaluable` should create a scope-follow-up item before final scoring.
+
+### User-Entity Assumption Scoring
+
+When a criterion depends on customer or user-entity action, separate the readiness result into service-organization responsibility and user-entity assumption disclosure:
+
+```
+| Assumption ID | Related Criteria | Customer/User-Entity Responsibility | Service Organization Control | Disclosure Evidence | Gap Type | Confidence |
+|---------------|------------------|-------------------------------------|------------------------------|--------------------|----------|------------|
+| UEA-001       | CC6.1, CC6.2     | Customer configures SSO/MFA and reviews tenant users | SSO/MFA capability, audit logs, admin guide | MSA + admin docs | Disclosure gap / Service org gap / Customer responsibility | Partial |
+```
+
+Use this for customer-managed SSO/MFA, customer tenant access reviews, API-key custody, IP allowlisting, endpoint management, and similar shared-control areas.
+
+### Out-of-Scope but Relevant Observations
+
+Use this bucket when an obligation matters to the business but is not part of the selected SOC 2 report categories or system boundary:
+
+```
+| Observation ID | Topic | Source | Why Not Scored | Business Relevance | Recommended Owner | Follow-up |
+|----------------|-------|--------|----------------|--------------------|-------------------|-----------|
+| OSR-001        | Privacy DSAR workflow | Privacy notice | Privacy TSC not selected for report | GDPR/CCPA program requirement | Legal/Privacy | Track outside SOC 2 readiness matrix |
 ```
 
 ### Aggregate Summary
