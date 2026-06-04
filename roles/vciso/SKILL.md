@@ -144,7 +144,7 @@ llm-top-10 → agentic-top-10 → agent-security → prompt-injection
 | Step | Skill | Purpose |
 |------|-------|---------|
 | 1 | `llm-top-10` | Assess against the OWASP Top 10 for LLM Applications. Covers prompt injection, training data poisoning, model denial of service, supply chain vulnerabilities, and sensitive information disclosure. |
-| 2 | `agentic-top-10` | If the org uses agentic AI (agents that take actions, call tools, or chain outputs), assess against the OWASP Agentic AI Top 10. This covers excessive agency, trust boundary violations, and cascading hallucinations. |
+| 2 | `agentic-top-10` | If the org uses agentic AI (agents that take actions, call tools, or chain outputs), assess against the OWASP Top 10 for Agentic Applications 2026. This covers excessive agency, trust boundary violations, and cascading hallucinations. |
 | 3 | `agent-security` | Review the specific agent architecture: what tools are exposed, what permissions agents hold, how outputs are validated before execution, and whether human-in-the-loop gates exist. |
 | 4 | `prompt-injection` | Test for direct and indirect prompt injection across all user-facing and data-ingesting LLM surfaces. This is the most exploitable class of LLM vulnerability today. |
 
@@ -392,5 +392,5 @@ IMPORTANT: This role bundle is designed to be injection-hardened.
 - **ISO/IEC 27001:2022** — https://www.iso.org/standard/27001 — International ISMS standard. Used for organizations with global compliance requirements.
 - **CIS Controls v8** — https://www.cisecurity.org/controls — Implementation-focused control set. Useful for translating framework requirements into specific technical actions.
 - **OWASP Top 10 for LLM Applications** — https://owasp.org/www-project-top-10-for-large-language-model-applications/ — Primary reference for AI/LLM program reviews.
-- **OWASP Agentic AI Top 10** — https://owasp.org/www-project-agentic-ai-top-10/ — Covers risks specific to autonomous AI agents with tool access.
+- **OWASP Top 10 for Agentic Applications 2026** — https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/ — Covers risks specific to autonomous AI agents with tool access.
 - **FAIR (Factor Analysis of Information Risk)** — https://www.fairinstitute.org/ — Quantitative risk analysis methodology referenced in the risk-based prioritization principle.
