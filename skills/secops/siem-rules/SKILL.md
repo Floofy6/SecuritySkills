@@ -2,14 +2,14 @@
 name: siem-rules
 description: >
   Guides development of SIEM detection rules using KQL (Microsoft Sentinel) and
-  SPL (Splunk) query languages, mapped to MITRE ATT&CK v16 techniques. Auto-invoked
+  SPL (Splunk) query languages, mapped to MITRE ATT&CK v19.1 techniques. Auto-invoked
   when the user needs to write SIEM queries, tune alert thresholds, build correlation
   rules, or manage the detection rule lifecycle. Produces production-ready queries
   with detection logic patterns, threshold tuning guidance, and lifecycle management.
 tags: [secops, siem, kql, spl]
 role: [soc-analyst, security-engineer]
 phase: [operate]
-frameworks: [MITRE-ATT&CK-v16]
+frameworks: [MITRE-ATT&CK-v19.1]
 difficulty: intermediate
 time_estimate: "20-40min"
 version: "1.0.0"
@@ -22,7 +22,7 @@ argument-hint: "[technique-ID-or-log-source]"
 
 # SIEM Detection Rule Development
 
-> **Framework:** MITRE ATT&CK v16
+> **Framework:** MITRE ATT&CK v19.1
 > **Role:** SOC Analyst, Security Engineer
 > **Time:** 20-40 min per rule
 > **Output:** Production-ready KQL or SPL detection query, correlation rule logic, tuning parameters
@@ -52,7 +52,9 @@ Before beginning, gather or confirm:
 
 - [ ] **Target SIEM platform:** Microsoft Sentinel (KQL) or Splunk (SPL).
 - [ ] **Detection objective:** What behavior or threat is being detected? Include ATT&CK technique ID if known.
+- [ ] **ATT&CK source version:** Confirm the current ATT&CK version from the MITRE ATT&CK version history page and record the exact version and URL used.
 - [ ] **Available data tables/indexes:** Which log tables (Sentinel) or indexes (Splunk) contain the relevant data?
+- [ ] **ATT&CK detection evidence:** Check whether the technique has current Detection Strategy, Analytics, and Data Component mappings. Treat legacy Data Sources as historical context only.
 - [ ] **Environment baseline:** Normal volume and patterns for the data source (e.g., average daily failed logon count, typical admin logon hours).
 - [ ] **Alert priority and response:** Desired severity level and expected analyst response procedure.
 - [ ] **Performance constraints:** Query time window, maximum execution time, and scheduled frequency.
@@ -77,6 +79,10 @@ Select the appropriate detection logic pattern based on the threat being detecte
 | **Correlation** | Multi-table joins, multi-stage attacks | High |
 | **Behavioral baseline** | Deviation from normal, first-seen analysis | High |
 | **Impossible travel** | Geographically implausible authentication | High |
+
+**ATT&CK source-version gate:**
+
+Before selecting or updating a rule, verify the technique, tactic, and defensive mapping against the current MITRE ATT&CK site. Record the ATT&CK version checked, the technique URL, and any Detection Strategy, Analytics, or Data Component identifiers used to justify the SIEM logic. Do not cite ATT&CK v16 as current unless the engagement scope explicitly requires that historical release.
 
 ### Step 2: Write the Detection Query
 
@@ -510,8 +516,17 @@ Produce SIEM rule deliverables in this structure:
 ## SIEM Detection Rule: [Rule Name]
 **Date:** [YYYY-MM-DD]
 **Skill:** siem-rules v1.0.0
-**Framework:** MITRE ATT&CK v16
+**Framework:** MITRE ATT&CK v19.1
 **Platform:** [Microsoft Sentinel (KQL) | Splunk (SPL)]
+
+### Framework Sources
+| Field | Value |
+|-------|-------|
+| ATT&CK Version Checked | [MITRE ATT&CK v19.1, verified YYYY-MM-DD] |
+| ATT&CK Version Source | [https://attack.mitre.org/resources/versions/] |
+| Technique Source | [https://attack.mitre.org/techniques/T1110/003/] |
+| Detection Strategy / Analytics | [DET#### / AN####, if available] |
+| Data Components | [Current ATT&CK data components used] |
 
 ### Rule Metadata
 | Field | Value |
@@ -519,8 +534,10 @@ Produce SIEM rule deliverables in this structure:
 | Rule Name | [Name] |
 | ATT&CK Technique | [T1110.003 -- Brute Force: Password Spraying] |
 | ATT&CK Tactic | [Credential Access (TA0006)] |
+| ATT&CK Detection Strategy | [DET#### -- Strategy name, if available] |
+| ATT&CK Analytics | [AN#### IDs, if available] |
 | Severity | [High / Medium / Low / Informational] |
-| Data Source | [Table/Index name] |
+| SIEM Table or Index | [Sentinel table / Splunk index and sourcetype] |
 | Status | [Draft / Testing / Active] |
 
 ### Detection Query
@@ -555,24 +572,26 @@ Produce SIEM rule deliverables in this structure:
 
 ## 6. Framework Reference
 
-### MITRE ATT&CK v16
+### MITRE ATT&CK v19.1
 
-For SIEM rule development, ATT&CK provides the canonical mapping between adversary techniques and the data sources that reveal them. Each technique's "Detection" section describes what to look for and in which log sources.
+For SIEM rule development, ATT&CK provides the canonical mapping between adversary techniques and the defensive evidence that can reveal them. Use the ATT&CK version history page to confirm the current release before publishing or updating a rule, then cite the technique page and any Detection Strategy, Analytics, and Data Component pages that justify the detection logic.
+
+ATT&CK Data Sources were deprecated in the v18 release. Preserve Data Source references only when maintaining legacy rule metadata, and prefer current Data Components plus Detection Strategy and Analytics IDs for new SIEM rule evidence.
 
 **Key ATT&CK techniques frequently detected via SIEM rules:**
 
-| Technique ID | Name | Primary SIEM Data Source |
-|-------------|------|--------------------------|
-| T1110 | Brute Force | Authentication logs (SigninLogs, EventCode 4625) |
-| T1078 | Valid Accounts | Authentication logs, impossible travel |
-| T1059 | Command and Scripting Interpreter | Process creation logs (Sysmon 1, 4688) |
-| T1021 | Remote Services | Network logon events (4624 Type 3/10) |
-| T1053 | Scheduled Task/Job | Event IDs 4698 (created), 4702 (updated) |
-| T1136 | Create Account | Event ID 4720 (user account created) |
-| T1098 | Account Manipulation | Event IDs 4728, 4732, 4756 (group membership changes) |
-| T1070 | Indicator Removal | Event ID 1102 (audit log cleared) |
-| T1003 | OS Credential Dumping | Sysmon EID 10 (process access to LSASS) |
-| T1486 | Data Encrypted for Impact | File modification patterns, ransomware note creation |
+| Technique ID | Name | Primary SIEM Evidence |
+|-------------|------|-----------------------|
+| T1110 | Brute Force | Authentication failures and account lockout events |
+| T1078 | Valid Accounts | Authentication success anomalies, impossible travel, new device or location use |
+| T1059 | Command and Scripting Interpreter | Process creation, command-line, script block, and shell telemetry |
+| T1021 | Remote Services | Remote logon, network session, and service authentication events |
+| T1053 | Scheduled Task/Job | Task creation, modification, launch, and scheduler service events |
+| T1136 | Create Account | User or service account creation events |
+| T1098 | Account Manipulation | Group, role, credential, and account attribute changes |
+| T1070 | Indicator Removal | Audit log clearing, file deletion, and history tampering events |
+| T1003 | OS Credential Dumping | Sensitive process access, credential store reads, and suspicious dump artifacts |
+| T1486 | Data Encrypted for Impact | File modification bursts, extension changes, encryption utilities, and ransom-note artifacts |
 
 ### KQL (Kusto Query Language) Quick Reference
 
@@ -632,6 +651,10 @@ Deploying a rule without confirming it fires on known-malicious activity is depl
 
 A detection rule that fires every 5 minutes on the same ongoing activity (e.g., a brute force attack lasting 2 hours) floods the alert queue with duplicates. Configure alert suppression or deduplication to prevent the same incident from generating hundreds of identical alerts. Use suppression windows and entity-based grouping to consolidate related alerts.
 
+### Pitfall 6: Treating Legacy ATT&CK Data Sources as Current
+
+ATT&CK Data Sources are still visible for reference, but MITRE deprecated them in v18 and no longer adds new Data Sources. New or updated SIEM rules should cite the current ATT&CK version, technique URL, Data Components, Detection Strategies, and Analytics where available instead of presenting `/datasources/` as the active source of truth.
+
 ---
 
 ## 8. Prompt Injection Safety Notice
@@ -648,13 +671,18 @@ This skill processes user-supplied content that may include SIEM query drafts, l
 
 ## 9. References
 
-1. **MITRE ATT&CK Enterprise Matrix v16** -- https://attack.mitre.org/matrices/enterprise/
-2. **Microsoft Sentinel KQL Reference** -- https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/
-3. **Microsoft Sentinel Analytics Rules** -- https://learn.microsoft.com/en-us/azure/sentinel/detect-threats-built-in
-4. **Splunk SPL Reference** -- https://docs.splunk.com/Documentation/Splunk/latest/SearchReference
-5. **Splunk Security Essentials** -- https://splunkbase.splunk.com/app/3435/
-6. **Azure AD Sign-in Error Codes** -- https://learn.microsoft.com/en-us/azure/active-directory/develop/reference-error-codes
-7. **Windows Security Event Log Reference** -- https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/security-auditing-overview
-8. **MITRE ATT&CK Data Sources** -- https://attack.mitre.org/datasources/
-9. **Sentinel Entity Mapping** -- https://learn.microsoft.com/en-us/azure/sentinel/map-data-fields-to-entities
-10. **Splunk CIM (Common Information Model)** -- https://docs.splunk.com/Documentation/CIM/latest/User/Overview
+1. **MITRE ATT&CK Version History** -- https://attack.mitre.org/resources/versions/
+2. **MITRE ATT&CK Enterprise Matrix** -- https://attack.mitre.org/matrices/enterprise/
+3. **MITRE ATT&CK Detection Strategies** -- https://attack.mitre.org/detectionstrategies/
+4. **MITRE ATT&CK Analytics** -- https://attack.mitre.org/analytics/
+5. **MITRE ATT&CK Data Components** -- https://attack.mitre.org/datacomponents/
+6. **MITRE ATT&CK Data Sources (deprecated in ATT&CK v18)** -- https://attack.mitre.org/datasources/
+7. **MITRE ATT&CK October 2025 Release Notes** -- https://attack.mitre.org/resources/updates/updates-october-2025/
+8. **Microsoft Sentinel KQL Reference** -- https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/
+9. **Microsoft Sentinel Analytics Rules** -- https://learn.microsoft.com/en-us/azure/sentinel/detect-threats-built-in
+10. **Splunk SPL Reference** -- https://docs.splunk.com/Documentation/Splunk/latest/SearchReference
+11. **Splunk Security Essentials** -- https://splunkbase.splunk.com/app/3435/
+12. **Azure AD Sign-in Error Codes** -- https://learn.microsoft.com/en-us/azure/active-directory/develop/reference-error-codes
+13. **Windows Security Event Log Reference** -- https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/security-auditing-overview
+14. **Sentinel Entity Mapping** -- https://learn.microsoft.com/en-us/azure/sentinel/map-data-fields-to-entities
+15. **Splunk CIM (Common Information Model)** -- https://docs.splunk.com/Documentation/CIM/latest/User/Overview

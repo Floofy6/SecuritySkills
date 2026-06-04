@@ -450,7 +450,7 @@ skills:
     role: [soc-analyst, security-engineer]
     phase: [operate]
     activity: [design, configure]
-    frameworks: [MITRE-ATT&CK-v16]
+    frameworks: [MITRE-ATT&CK-v19.1]
     difficulty: intermediate
     time_estimate: "20-40min"
     file: skills/secops/siem-rules/SKILL.md
