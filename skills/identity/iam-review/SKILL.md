@@ -1,7 +1,7 @@
 ---
 name: iam-review
 description: >
-  Reviews identity and access management configurations against NIST SP 800-63B,
+  Reviews identity and access management configurations against NIST SP 800-63B-4,
   NIST SP 800-207 zero trust principles, and CIS Controls v8. Auto-invoked when
   reviewing IAM policies, role definitions, user provisioning workflows, or when
   asked to assess identity security posture. Produces findings on least privilege
@@ -10,10 +10,10 @@ description: >
 tags: [identity, iam, access-control, zero-trust]
 role: [security-engineer, cloud-security-engineer, vciso]
 phase: [design, operate]
-frameworks: [NIST-SP-800-63B, NIST-SP-800-207, CIS-Controls-v8]
+frameworks: [NIST-SP-800-63B-4, NIST-SP-800-207, CIS-Controls-v8]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -23,7 +23,7 @@ argument-hint: "[target-file-or-directory]"
 
 # IAM Review — Identity & Access Management Security Assessment
 
-> **Grounded in:** NIST SP 800-63B (Digital Identity Guidelines: Authentication and Lifecycle Management), NIST SP 800-207 (Zero Trust Architecture), CIS Controls v8 (Controls 5 and 6)
+> **Grounded in:** NIST SP 800-63B-4 (Digital Identity Guidelines: Authentication and Authenticator Management), NIST SP 800-207 (Zero Trust Architecture), CIS Controls v8 (Controls 5 and 6)
 
 ---
 
@@ -63,7 +63,7 @@ SECURITY BOUNDARY — This skill processes IAM configuration data only.
 
 | Framework | Relevant Controls | Focus |
 |---|---|---|
-| **NIST SP 800-63B** | AAL1, AAL2, AAL3 | Authenticator assurance levels, MFA requirements, credential lifecycle |
+| **NIST SP 800-63B-4** | AAL1, AAL2, AAL3 | Authenticator assurance levels, MFA requirements, authenticator management |
 | **NIST SP 800-207** | Tenets 1-7 | Zero trust principles: verify explicitly, least privilege, assume breach |
 | **CIS Controls v8 — Control 5** | 5.1, 5.2, 5.3, 5.4, 5.5, 5.6 | Account Management: inventory, disable unused, restrict admin, enforce MFA |
 | **CIS Controls v8 — Control 6** | 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8 | Access Control Management: authorization, least privilege, centralized management |
@@ -109,12 +109,12 @@ IAM-INV-05: Break-glass / emergency accounts not documented
 
 ### Step 2: Authentication Review
 
-**Objective:** Assess authentication strength against NIST SP 800-63B authenticator assurance levels.
+**Objective:** Assess authentication strength against NIST SP 800-63B-4 authenticator assurance levels.
 
-**NIST SP 800-63B Reference:** Authenticator Assurance Levels (AAL)
+**NIST SP 800-63B-4 Reference:** Authenticator Assurance Levels (AAL)
 **CIS Controls v8 Reference:** Control 5.2 — Use Unique Passwords; Control 5.5 — Establish and Maintain an Inventory of Service Accounts
 
-#### NIST SP 800-63B Assurance Levels
+#### NIST SP 800-63B-4 Assurance Levels
 
 | Level | Description | Authenticator Requirements | Appropriate For |
 |---|---|---|---|
@@ -138,10 +138,10 @@ IAM-AUTH-06: Recovery flows bypass MFA (password reset without second factor)
 **Password Policy:**
 
 ```
-IAM-AUTH-07: Password length below 14 characters for privileged accounts
-IAM-AUTH-08: No breached password screening (NIST SP 800-63B Section 5.1.1.2)
+IAM-AUTH-07: Single-factor password length below 15 characters, or MFA-only password length below 8 characters
+IAM-AUTH-08: No commonly used, expected, or compromised password blocklist (NIST SP 800-63B-4 Section 3.1.1.2)
 IAM-AUTH-09: Forced periodic rotation without compromise trigger (NIST discourages arbitrary rotation)
-IAM-AUTH-10: Composition rules used instead of length-based policy (NIST SP 800-63B Section 5.1.1.1)
+IAM-AUTH-10: Composition rules used instead of length-based policy (NIST SP 800-63B-4 Section 3.1.1.2)
 ```
 
 **Platform-specific checks:**
@@ -377,7 +377,7 @@ For each finding, produce a row with:
 | **Finding ID** | Unique identifier (e.g., IAM-AUTH-01) |
 | **Title** | Brief description of the finding |
 | **Severity** | Critical / High / Medium / Low |
-| **Framework Ref** | NIST SP 800-63B section, NIST SP 800-207 tenet, or CIS Control ID |
+| **Framework Ref** | NIST SP 800-63B-4 section, NIST SP 800-207 tenet, or CIS Control ID |
 | **Affected Scope** | Accounts, roles, policies, or platforms impacted |
 | **Evidence** | Specific configuration, policy, or data supporting the finding |
 | **Remediation** | Prioritized fix with implementation guidance |
@@ -418,7 +418,7 @@ For each finding, produce a row with:
 [Prioritized actions: immediate (0-7 days), short-term (30 days), medium-term (90 days)]
 
 ### Framework Compliance Mapping
-[Map findings to NIST SP 800-63B, NIST SP 800-207, and CIS Controls v8 requirements]
+[Map findings to NIST SP 800-63B-4, NIST SP 800-207, and CIS Controls v8 requirements]
 ```
 
 ---
@@ -489,18 +489,24 @@ This skill processes user-supplied content including IAM policies, access config
 
 ---
 
-## Appendix: NIST SP 800-63B Quick Reference
+## Appendix: NIST SP 800-63B-4 Quick Reference
 
 | Section | Topic | Key Requirement |
 |---|---|---|
-| **4.1** | Authenticator Assurance Level 1 | Single factor; permits passwords meeting length/breach-check requirements |
-| **4.2** | Authenticator Assurance Level 2 | Two different factors; phishing resistance recommended |
-| **4.3** | Authenticator Assurance Level 3 | Hardware-based; verifier impersonation resistance required |
-| **5.1.1** | Memorized Secrets (Passwords) | Minimum 8 chars (14+ recommended), breached-password check, no composition rules |
-| **5.1.3** | Out-of-Band Authenticators | Pre-registered device; PSTN (SMS/voice) restricted use |
-| **5.1.4** | Single-Factor OTP Device | Something you have; time-based or event-based |
-| **5.1.7** | Multi-Factor Crypto Device | Hardware token; meets AAL3 requirements |
-| **5.2.3** | Reauthentication | AAL2 requires reauth every 12 hours or 30 minutes idle; AAL3 every 12 hours or 15 minutes idle |
+| **2.1** | Authenticator Assurance Level 1 | Single-factor or multi-factor authentication; MFA options recommended |
+| **2.2** | Authenticator Assurance Level 2 | Two distinct factors required; phishing-resistant option must be offered |
+| **2.3** | Authenticator Assurance Level 3 | Phishing-resistant authenticator with non-exportable authentication key |
+| **3.1.1** | Passwords | Single-factor passwords minimum 15 characters; MFA-only passwords minimum 8 characters; blocklist; no composition rules |
+| **3.1.3** | Out-of-Band Authenticators | Separate communication channel; verifier requirements define restricted channels |
+| **3.1.4** | Single-Factor OTP | One-time password from device or application held by the subscriber |
+| **3.1.7** | Multi-Factor Cryptographic Authentication | Cryptographic proof of possession activated by a second factor |
+| **5.2** | Reauthentication | Session reauthentication requirements; AAL-specific limits in Sections 2.1.3, 2.2.3, and 2.3.3 |
+
+## References
+
+- NIST SP 800-63B-4, Digital Identity Guidelines: Authentication and Authenticator Management: https://csrc.nist.gov/pubs/sp/800/63/b/4/final
+- NIST SP 800-63B-4 live HTML: https://pages.nist.gov/800-63-4/sp800-63b.html
+- NIST SP 800-63B-4 DOI/PDF: https://doi.org/10.6028/NIST.SP.800-63B-4
 
 ---
 
@@ -508,4 +514,5 @@ This skill processes user-supplied content including IAM policies, access config
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.0.1 | 2026-06-04 | Refresh NIST SP 800-63B references and section mappings to SP 800-63B-4 |
 | 1.0.0 | 2025-03-06 | Initial release |

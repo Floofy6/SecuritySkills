@@ -84,7 +84,7 @@ skills:
     role: [security-engineer, cloud-security-engineer, vciso]
     phase: [design, operate]
     activity: [review, audit]
-    frameworks: [NIST-SP-800-63B, NIST-SP-800-207, CIS-Controls-v8]
+    frameworks: [NIST-SP-800-63B-4, NIST-SP-800-207, CIS-Controls-v8]
     difficulty: intermediate
     time_estimate: "30-60min"
     file: skills/identity/iam-review/SKILL.md
