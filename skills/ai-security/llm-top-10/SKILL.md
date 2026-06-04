@@ -5,11 +5,11 @@ description: >
   Model Applications (2025 edition). Auto-invoked when reviewing code that
   integrates LLM APIs, builds RAG pipelines, or deploys AI-powered features.
   Produces a structured findings report mapped to LLM01-LLM10 with severity
-  ratings, CWE mappings, and prioritized remediation guidance.
-tags: [ai-security, llm, appsec]
+  ratings, evidence-driven CWE mappings, and prioritized remediation guidance.
+tags: [ai-security, llm, appsec, cwe]
 role: [appsec-engineer, security-engineer, vciso]
 phase: [design, build, review]
-frameworks: [OWASP-LLM-Top-10-2025]
+frameworks: [OWASP-LLM-Top-10-2025, CWE]
 difficulty: intermediate
 time_estimate: "30-60min"
 version: "1.0.0"
@@ -345,7 +345,29 @@ Review the application against each of the ten OWASP LLM risk categories below. 
 - Use lower temperature settings (0.0-0.3) for factual, deterministic use cases.
 - Implement cross-referencing or fact-checking pipelines for critical content generation workflows.
 
-**CWE Mapping:** CWE-1188 (Initialization with Hard-Coded Network Resource Configuration Reference — analogous: reliance on unvalidated information source)
+#### LLM09 CWE Applicability Gate
+
+Do not assign a CWE to every LLM09 observation by default. First determine whether the misinformation creates a concrete software weakness, crosses a security boundary, or reaches a downstream sink that performs a security-relevant action.
+
+Record these fields before assigning a CWE:
+
+- `security_boundary`: none, user trust boundary, authorization boundary, deployment/build boundary, safety/legal/financial decision boundary, or state-changing tool boundary.
+- `downstream_sink`: escaped UI text, generated documentation, customer-facing publication, code repository, build/install command, database write, tool call, alert disposition, or other sink.
+- `authoritative_claim`: whether the application presents the output as authoritative, source-backed, contractual, medical/legal/financial advice, or merely AI-generated draft text.
+- `validation_control`: source verification, schema validation, code review, package verification, human approval, deterministic policy check, or none.
+- `human_review_gate`: required, optional, absent, or not applicable.
+- `cwe_applicability`: Applicable, Not Applicable, None assigned, or Inherited from linked implementation weakness.
+- `cwe_mapping_rationale`: why the CWE does or does not describe the actual root cause.
+
+| LLM09 Scenario | CWE Handling | Rationale |
+|---|---|---|
+| Public FAQ chatbot gives an unsupported answer as escaped text, with no tools, state changes, security decision, or authoritative sink | `CWE: Not Applicable` or `CWE: None assigned` | Governance/product-risk observation, not a concrete software weakness |
+| Model suggests insecure code and that code is introduced into the reviewed codebase | Map to the introduced flaw, such as CWE-89 for SQL injection or CWE-79 for XSS | The actionable weakness is the generated implementation flaw |
+| Model hallucinates a package and the application automatically writes it into a build file or install command | Map to the dependency/output-action weakness, and cross-reference LLM03/LLM05/LLM06 as applicable | Risk comes from trusting model output as a dependency/action input |
+| Model output drives alert closure, access approval, deployment, or another consequential tool call without validation | Map to the missing validation, authorization, or excessive-agency weakness where supported, and cross-reference LLM05/LLM06 | Security boundary is crossed by unvalidated output |
+| Evidence shows a resource is initialized with an insecure default intended to be changed by an installer, administrator, or maintainer | `CWE-1188` may apply | Use only when the evidence matches insecure default resource initialization |
+
+**CWE Mapping:** Evidence-driven. Use `CWE: Not Applicable` / `CWE: None assigned` for governance-only misinformation observations, map to the concrete implementation weakness when one exists, and reserve CWE-1188 for actual insecure default initialization evidence.
 
 ---
 
@@ -419,7 +441,12 @@ Structure the findings report as follows:
 
 - **OWASP Category:** LLM0X:2025 — [Category Name]
 - **Severity:** Critical | High | Medium | Low | Informational
-- **CWE:** CWE-XXX
+- **CWE:** CWE-XXX | Not Applicable | None assigned
+- **CWE Applicability:** Applicable | Not Applicable | None assigned | Inherited from linked implementation weakness
+- **CWE Mapping Rationale:** [Why this CWE describes the actual weakness, or why no CWE is assigned]
+- **Security Boundary:** [none / authorization / deployment-build / safety-legal-financial decision / state-changing tool / other]
+- **Downstream Sink:** [escaped UI text / generated documentation / code repository / build command / database write / tool call / alert disposition / other]
+- **Validation Control:** [source verification / schema validation / code review / package verification / human approval / deterministic policy / none]
 - **Location:** [file path, function, configuration]
 - **Description:** [What was found]
 - **Evidence:** [Code snippet, configuration excerpt, or architectural observation]
@@ -476,6 +503,8 @@ These are the five most frequent mistakes agents make when performing LLM securi
 
 5. **Scoping the review to the application layer only.** LLM security includes supply chain (LLM03) — model provenance, dependency versions, serialization formats — and infrastructure — vector database authentication, API key management, cost controls (LLM10). These are outside the application code but within scope of this review.
 
+6. **Forcing every LLM09 observation into a CWE.** Misinformation can be a governance, product, legal, or trust risk without a concrete software weakness. Assign `CWE: Not Applicable` or `CWE: None assigned` when no implementation weakness exists, and map to the actual downstream flaw when model output becomes code, dependencies, security decisions, or state-changing actions.
+
 ---
 
 ## 8. Prompt Injection Safety Notice
@@ -506,4 +535,6 @@ When performing a review using this skill:
 - LLM07:2025 System Prompt Leakage: https://genai.owasp.org/llmrisk/llm07-system-prompt-leakage/
 - LLM08:2025 Vector and Embedding Weaknesses: https://genai.owasp.org/llmrisk/llm08-vector-and-embedding-weaknesses/
 - LLM09:2025 Misinformation: https://genai.owasp.org/llmrisk/llm09-misinformation/
+- LLM09:2025 Misinformation (canonical 2025 URL): https://genai.owasp.org/llmrisk/llm092025-misinformation/
 - LLM10:2025 Unbounded Consumption: https://genai.owasp.org/llmrisk/llm10-unbounded-consumption/
+- MITRE CWE-1188: https://cwe.mitre.org/data/definitions/1188.html
