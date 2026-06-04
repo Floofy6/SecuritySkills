@@ -13,7 +13,7 @@ phase: [respond, recover]
 frameworks: [NIST-SP-800-61r2, SANS-IH]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.1"
+version: "1.0.2"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -60,6 +60,7 @@ Before beginning, gather or confirm the following. Mark each item as obtained or
 - [ ] **Business context** -- What business functions do the affected systems support? Revenue impact, customer impact, regulatory exposure.
 - [ ] **Current state** -- Is the attack ongoing, contained, or resolved? What actions have already been taken?
 - [ ] **Existing IR plan** -- Does the organization have a documented IR plan, designated IR team, and established communication channels?
+- [ ] **CSIRT service model** -- Are response services, handoffs, and external coordination boundaries mapped to a current CSIRT service framework version and retrieval date?
 - [ ] **Regulatory obligations** -- Applicable breach notification requirements (GDPR 72-hour rule, HIPAA, state breach notification laws, SEC 4-day rule, PCI DSS).
 - [ ] **Third-party dependencies** -- Managed security providers (MSSP/MDR), cyber insurance carrier notification requirements, external IR retainer.
 
@@ -104,6 +105,7 @@ Verify that the foundational elements for incident response are in place. If gap
 | Communication channels (out-of-band, not dependent on compromised infrastructure) | [ ] | Secure messaging, bridge lines |
 | Forensic toolkit available (disk imaging, memory capture, network capture) | [ ] | |
 | Log sources centralized and accessible (SIEM, cloud trail, EDR console) | [ ] | |
+| CSIRT service catalogue mapped to current FIRST Services Framework | [ ] | Record CSIRT Services Framework version and retrieval date |
 | Legal counsel identified and reachable | [ ] | Internal or external |
 | Cyber insurance policy and carrier contact | [ ] | Notification within 24-72h typical |
 | External IR retainer (if applicable) | [ ] | |
@@ -367,9 +369,10 @@ Produce the incident response report with these exact sections:
 ```markdown
 ## Incident Response Report: [Incident ID]
 **Date:** [YYYY-MM-DD]
-**Skill:** ir-playbook v1.0.0
+**Skill:** ir-playbook v1.0.2
 **Frameworks:** NIST SP 800-61 Rev 2, SANS Incident Handler's Handbook
 **Incident Commander:** [Name or "Unassigned -- assign immediately"]
+**Reference Currency:** [Framework versions and retrieval dates, including FIRST CSIRT Services Framework if used]
 
 ### Executive Summary
 [3-5 sentences. State the incident type, severity, current status, business impact,
@@ -436,6 +439,10 @@ NIST SP 800-61 Rev 2 (August 2012) defines a four-phase IR lifecycle: (1) Prepar
 
 The SANS Incident Handler's Handbook provides a six-step process: (1) Preparation, (2) Identification, (3) Containment (short-term and long-term), (4) Eradication, (5) Recovery, (6) Lessons Learned. Unlike NIST, SANS separates containment, eradication, and recovery into distinct steps with clearer operational boundaries.
 
+### FIRST Services Framework -- CSIRT Service Catalogue
+
+Use the current FIRST Services Framework when defining CSIRT service catalogues, handoff boundaries, and external coordination responsibilities. Record the CSIRT Services Framework version and retrieval date in the incident response plan so service assumptions are traceable. Do not rely on the retired `first.org/education/csirt` path; use the current standards framework page and versioned CSIRT framework material instead.
+
 ### MITRE ATT&CK -- Mapping Attacker Behavior
 
 During detection and analysis, map observed attacker techniques to the MITRE ATT&CK Enterprise Matrix. This enables:
@@ -493,7 +500,7 @@ This skill processes incident data that may include attacker-controlled content 
 7. **HIPAA Breach Notification Rule** -- 45 CFR 164.400-414 -- https://www.hhs.gov/hipaa/for-professionals/breach-notification/
 8. **SEC Cybersecurity Incident Disclosure (Item 1.05 Form 8-K)** -- https://www.sec.gov/rules/final/2023/33-11216.pdf
 9. **FBI Internet Crime Complaint Center (IC3)** -- https://www.ic3.gov/
-10. **FIRST CSIRT Framework** -- https://www.first.org/education/csirt
+10. **FIRST CSIRT Services Framework v2.1** -- https://www.first.org/standards/frameworks/csirts/csirt_services_framework_v2.1
 11. **CISA Destructive Malware Guidance** -- https://www.cisa.gov/topics/cyber-threats-and-advisories
 12. **H-ISAC (Health Information Sharing and Analysis Center)** -- https://h-isac.org/
 13. **KrebsOnSecurity: Iran-backed wiper attack on Stryker medtech (2026)** -- https://krebsonsystems.com/2026/03/iran-backed-hackers-claim-wiper-attack-on-medtech-firm-stryker/
