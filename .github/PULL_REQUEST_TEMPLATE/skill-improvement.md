@@ -2,7 +2,7 @@
 
 ### Skill Modified
 **Skill name:**
-**Skill path:** `skills/[category]/[skill-name]/`
+**Skill path:** `skills/[category]/[skill-name]/SKILL.md`
 
 ### What Was Wrong
 <!-- Describe the specific issue: false positives, missed variants, broken remediation, etc. -->
@@ -36,5 +36,5 @@
 - [ ] **Substantial** ($150) — Rewritten detection logic, major coverage expansion
 
 ### Bounty Info
-- [ ] I have read and agree to the [CONTRIBUTING.md](../../CONTRIBUTING.md) bounty terms
+- [ ] I have read and agree to the [CONTRIBUTING.md](https://github.com/UnitOneAI/SecuritySkills/blob/main/CONTRIBUTING.md) bounty terms
 - **Preferred payment method:** GitHub Sponsors / PayPal / Crypto

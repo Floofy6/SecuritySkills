@@ -8,7 +8,7 @@ assignees: ''
 
 ## Skill Being Reviewed
 **Skill name:**
-**Skill path:** `skills/[category]/[skill-name]/`
+**Skill path:** `skills/[category]/[skill-name]/SKILL.md`
 
 ## False Positive Analysis
 <!-- Can you find benign code that this skill incorrectly flags? Provide specific code examples. -->
@@ -70,5 +70,5 @@ assignees: ''
 3.
 
 ## Bounty Info
-- [ ] I have read and agree to the [CONTRIBUTING.md](../../CONTRIBUTING.md) bounty terms
+- [ ] I have read and agree to the [CONTRIBUTING.md](https://github.com/UnitOneAI/SecuritySkills/blob/main/CONTRIBUTING.md) bounty terms
 - **Preferred payment method:** GitHub Sponsors / PayPal / Crypto

@@ -51,7 +51,7 @@ assignees: ''
 - [ ] **Complex** ($500) — Novel detection approach, comprehensive coverage, low FP rate
 
 ## Bounty Info
-- [ ] I have read and agree to the [CONTRIBUTING.md](../../CONTRIBUTING.md) bounty terms
+- [ ] I have read and agree to the [CONTRIBUTING.md](https://github.com/UnitOneAI/SecuritySkills/blob/main/CONTRIBUTING.md) bounty terms
 - **Preferred payment method:** GitHub Sponsors / PayPal / Crypto
 
 ---

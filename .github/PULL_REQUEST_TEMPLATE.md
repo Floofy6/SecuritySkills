@@ -2,14 +2,14 @@
 
 Please confirm the following before submitting:
 
-- [ ] Skill follows the format specification in [CONTRIBUTING.md](../CONTRIBUTING.md)
+- [ ] Skill follows the format specification in [CONTRIBUTING.md](https://github.com/UnitOneAI/SecuritySkills/blob/main/CONTRIBUTING.md)
 - [ ] At least one real framework is cited with correct control IDs
 - [ ] All framework references verified against primary sources (not blogs or AI output)
 - [ ] Prompt Injection Safety Notice section included
 - [ ] `injection-hardened: true` set in frontmatter
 - [ ] `allowed-tools` scoped to minimum necessary permissions
 - [ ] Tested with at least one AI coding agent (which one: ___)
-- [ ] No prohibited patterns per [SECURITY.md](../SECURITY.md)
+- [ ] No prohibited patterns per [SECURITY.md](https://github.com/UnitOneAI/SecuritySkills/blob/main/SECURITY.md)
 - [ ] `index.yaml` updated with new skill entry (if adding a skill)
 
 ## What This PR Does
