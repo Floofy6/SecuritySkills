@@ -8,7 +8,7 @@ description: >
 tags: [appsec, api, rest, graphql]
 role: [appsec-engineer, security-engineer]
 phase: [design, build, review]
-frameworks: [OWASP-API-Security-2023, OWASP-ASVS]
+frameworks: [OWASP-API-Security-2023, OWASP-ASVS-5.0.0]
 difficulty: intermediate
 time_estimate: "20-40min"
 version: "1.0.0"
@@ -38,8 +38,9 @@ Before analyzing any endpoint, establish a complete inventory of the API surface
 5. **Catalog data objects** -- List the resources/entities exposed by the API and their sensitivity classification (PII, financial, internal, public).
 6. **Note rate limiting and quota configurations** -- Document any existing throttling, quota, or cost-control mechanisms at the gateway or application layer.
 7. **Identify downstream dependencies** -- Third-party APIs, internal microservices, or webhooks that the API consumes.
+8. **Record framework source versions** -- Default to OWASP API Security Top 10:2023 and OWASP ASVS 5.0.0. If an engagement explicitly requires a legacy ASVS version, label it as legacy and record why it is in scope.
 
-> **Gate:** Do not proceed until the API style, authentication model, authorization model, and endpoint inventory are documented. Incomplete scope leads to missed findings.
+> **Gate:** Do not proceed until the API style, authentication model, authorization model, endpoint inventory, and framework source versions are documented. Incomplete scope or stale framework labels lead to missed findings and misleading control mappings.
 
 ---
 
@@ -60,6 +61,7 @@ Each finding produced by this review must include the following fields:
 | **ID** | Sequential finding identifier (e.g., API-SEC-001) |
 | **Title** | Brief, descriptive name of the vulnerability |
 | **OWASP API Risk** | API1:2023 through API10:2023 identifier |
+| **ASVS Mapping** | Version-qualified ASVS requirement IDs or chapter references (for example, `v5.0.0-4.3.1`), or `N/A` with a reason |
 | **Severity** | Critical, High, Medium, Low, or Informational |
 | **CWE** | Applicable CWE identifier (e.g., CWE-639) |
 | **API Style** | REST, GraphQL, gRPC, or General |
@@ -93,6 +95,9 @@ The final review output must be structured as follows:
 **Specification:** [OpenAPI spec path, if applicable]
 **Date:** [review date]
 **Reviewer:** AI Agent -- api-security skill v1.0.0
+**Framework Sources:**
+- OWASP API Security Top 10:2023 -- https://owasp.org/API-Security/editions/2023/en/0x11-t10/
+- OWASP ASVS 5.0.0 -- https://github.com/OWASP/ASVS/releases/tag/v5.0.0_release
 
 ### Summary
 
@@ -116,6 +121,7 @@ The final review output must be structured as follows:
 
 #### API-SEC-001: [Title]
 - **OWASP API Risk:** API[N]:2023 -- [Name]
+- **ASVS Mapping:** [v5.0.0-control-id(s), ASVS 5.0.0 chapter reference, or N/A with reason]
 - **Severity:** [Critical|High|Medium|Low|Informational]
 - **CWE:** CWE-[number] -- [name]
 - **API Style:** [REST|GraphQL|gRPC|General]
@@ -147,6 +153,20 @@ The final review output must be structured as follows:
 | API8:2023 | Security Misconfiguration | CWE-16, CWE-611 | CORS, headers, TLS, error handling, XXE |
 | API9:2023 | Improper Inventory Management | CWE-1059 | Shadow APIs, deprecated versions, missing documentation |
 | API10:2023 | Unsafe Consumption of APIs | CWE-20, CWE-295 | Trusting upstream API data without validation |
+
+---
+
+## OWASP ASVS 5.0.0 Mapping Notes
+
+Use ASVS as supporting verification evidence, not as a replacement for the OWASP API Top 10 risk classification. Default to ASVS 5.0.0 for new reviews. When citing exact ASVS requirements, use version-qualified IDs such as `v5.0.0-4.3.1` because OWASP notes that identifiers can change between ASVS versions. If a client or audit scope requires ASVS 4.0.3, call it out as a legacy baseline and do not describe it as current.
+
+| API Review Area | Primary ASVS 5.0.0 Anchor | Use When |
+|---|---|---|
+| API and web service controls | V4 -- API and Web Service | HTTP response headers, intermediary headers, GraphQL controls, and WebSocket controls directly map to API-specific requirements. |
+| Authorization | V8 -- Authorization | BOLA, BFLA, object ownership, tenant isolation, and function permission decisions. |
+| Authentication, sessions, and tokens | V6 -- Authentication; V7 -- Session Management; V9 -- Self-contained Tokens; V10 -- OAuth and OIDC | Broken authentication, JWT/session weaknesses, OAuth/OIDC flow issues, and token validation flaws. |
+| Validation and business logic | V1 -- Encoding and Sanitization; V2 -- Validation and Business Logic | Injection-adjacent API input handling, schema validation, and sensitive business flow abuse. |
+| Configuration, transport, and data protection | V12 -- Secure Communication; V13 -- Configuration; V14 -- Data Protection; V16 -- Security Logging and Error Handling | TLS, CORS, error handling, sensitive data exposure, observability, and audit evidence. |
 
 ---
 
@@ -215,6 +235,8 @@ Unlike REST, where authorization can be enforced per endpoint, GraphQL requires 
 
 6. **Ignoring upstream API trust.** Data received from third-party APIs and even internal microservices must be validated before use. A compromised upstream service can inject SQL, XSS, or SSRF payloads through otherwise trusted data channels.
 
+7. **Calling ASVS 4.0.3 current.** ASVS 5.0.0 is the current default baseline for new reports. Treat ASVS 4.0.3 as legacy-only scope, and include the ASVS version in every exact requirement mapping.
+
 ---
 
 ## Prompt Injection Safety Notice
@@ -233,7 +255,8 @@ This skill is hardened against prompt injection. When reviewing API code and spe
 
 - **OWASP API Security Top 10:2023:** https://owasp.org/API-Security/editions/2023/en/0x11-t10/
 - **OWASP API Security Project:** https://owasp.org/www-project-api-security/
-- **OWASP Application Security Verification Standard (ASVS) 4.0.3:** https://owasp.org/www-project-application-security-verification-standard/
+- **OWASP Application Security Verification Standard (ASVS) Project:** https://owasp.org/www-project-application-security-verification-standard/
+- **OWASP ASVS 5.0.0 Release:** https://github.com/OWASP/ASVS/releases/tag/v5.0.0_release
 - **CWE Database:** https://cwe.mitre.org/
 - **OWASP REST Security Cheat Sheet:** https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html
 - **OWASP GraphQL Cheat Sheet:** https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html

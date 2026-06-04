@@ -59,7 +59,7 @@ skills:
     role: [appsec-engineer, security-engineer]
     phase: [design, build, review]
     activity: [review, test]
-    frameworks: [OWASP-API-Security-2023, OWASP-ASVS]
+    frameworks: [OWASP-API-Security-2023, OWASP-ASVS-5.0.0]
     difficulty: intermediate
     time_estimate: "20-40min"
     file: skills/appsec/api-security/SKILL.md
