@@ -52,6 +52,7 @@ Before beginning the threat model, gather the following. Mark each item as obtai
 - [ ] **Compliance and regulatory requirements** — Applicable standards (SOC 2, PCI DSS, HIPAA, GDPR, FedRAMP).
 - [ ] **Existing security controls** — WAF, IDS/IPS, SIEM, secret management (Vault, AWS Secrets Manager), encryption at rest and in transit.
 - [ ] **Deployment environment** — Cloud provider (AWS, GCP, Azure), Kubernetes, serverless, on-premises, hybrid.
+- [ ] **Agentic execution surfaces** — AI agents, model planners, tool brokers, tool executors, RAG/memory stores, human approval gates, and autonomous action limits.
 
 ## 3. Process
 
@@ -67,6 +68,7 @@ Enumerate all assets that an adversary would target and all entry points through
 - Cryptographic keys and secrets
 - Audit logs and monitoring data
 - Infrastructure control plane (CI/CD pipelines, IaC templates, container registries)
+- Agent memory, retrieved context, tool credentials, approval records, and autonomous action policies
 
 **Entry Points:**
 - Public-facing API endpoints (REST, GraphQL, gRPC)
@@ -78,6 +80,7 @@ Enumerate all assets that an adversary would target and all entry points through
 - Webhook receivers
 - CI/CD pipeline triggers
 - DNS and network edge (load balancers, CDN origins)
+- Agent tool interfaces (browser, shell, cloud, source control, ticketing, payment, and deployment tools)
 
 ### Step 2: Define Threat Actor Profiles
 
@@ -159,6 +162,7 @@ Use this checklist to identify trust boundaries that are often missed:
 - [ ] **Cloud account/subscription boundaries** — Cross-account access, shared services, peered VPCs
 - [ ] **CI/CD pipeline boundaries** — Between source control, build system, artifact registry, and deployment target
 - [ ] **Third-party SDK/library boundaries** — Between your code and vendor SDKs, open-source packages, or embedded interpreters
+- [ ] **Agentic boundaries** — Between model/planner, tool broker, tool executors, memory/vector stores, human approval checkpoints, and tools that can read, write, publish, spend money, or change infrastructure
 
 For each data flow crossing a trust boundary, document:
 1. Source and destination components
@@ -182,6 +186,21 @@ Every data flow in the DFD must be annotated with the following properties:
 
 Mark any flow with `Authentication: none` or `Failure mode: fail-open` as requiring immediate threat analysis.
 
+**Agentic System Evidence Gate:**
+
+If the system includes an AI agent, LLM workflow, autonomous planner, RAG pipeline, or tool-using assistant, document these fields before applying STRIDE. If any field is missing, mark it as an assumption and treat high-impact tools as untrusted until proven otherwise.
+
+| Field | Evidence to Capture |
+|-------|---------------------|
+| Agent role and autonomy level | Advisory only, human-approved action, bounded autonomous action, or fully autonomous execution |
+| Model/planner boundary | Which component selects actions, which prompts/context influence it, and where user or external content enters |
+| Tool inventory | Tool name, owner, target system, privilege class (`read`, `write`, `public-write`, `financial`, `destructive`), and default enabled/disabled state |
+| Credential scope | Token type, least-privilege scope, tenant/org/repo/resource constraints, expiration, and rotation owner |
+| RAG and memory authority | Source owner, freshness, retrieval scope, tenant isolation, poisoning controls, and whether retrieved content is advisory or policy-bearing |
+| Human approval controls | Which actions require approval, who approves them, how approval is bound to exact arguments, and how replay or bypass is prevented |
+| Tool-call auditability | Actor, request, selected tool, target, normalized arguments, approval reference, result, and failure reason |
+| Policy and context failure mode | Fail-closed behavior when source verification, authorization, policy context, or approval state is missing or stale |
+
 ### Step 4: Apply STRIDE per Element
 
 For every component and data flow identified in the DFD, systematically ask the following questions organized by STRIDE category.
@@ -197,6 +216,8 @@ Threat: An attacker pretends to be another user, service, or system component.
 | Can an attacker replay a valid authentication token? | Stolen JWT without expiration |
 | Are API keys rotated and scoped appropriately? | Leaked long-lived API key |
 | Is multi-factor authentication enforced for privileged accounts? | Admin account takeover |
+| Can a tool caller impersonate the user, agent, service, or approval authority? | Forged agent identity invokes a privileged tool |
+| Can retrieved documents or memory records spoof policy, source authority, or system identity? | Poisoned RAG result is treated as trusted instructions |
 
 #### T — Tampering (Integrity Threats)
 
@@ -209,6 +230,8 @@ Threat: An attacker modifies data, code, or configuration without authorization.
 | Can CI/CD pipeline artifacts be tampered with? | Compromised build server, dependency confusion |
 | Are configuration files protected from unauthorized modification? | Writable config in production containers |
 | Is input validated and sanitized before processing? | XSS, command injection, deserialization attacks |
+| Can untrusted prompt, RAG, or memory content alter tool arguments or security policy? | Prompt content changes the repository, account, or command targeted by a tool |
+| Are agent plans and tool-call arguments normalized and checked before execution? | Hidden context mutates a safe read action into a write action |
 
 #### R — Repudiation (Audit and Accountability Threats)
 
@@ -221,6 +244,8 @@ Threat: A user or system denies performing an action, and the system cannot prov
 | Are logs centralized and protected from tampering? | Local-only logs on compromised host |
 | Do transactions include non-repudiation controls (digital signatures)? | Disputed financial transactions |
 | Is there sufficient log detail to reconstruct the sequence of events? | Logs missing source IP, user ID, or action detail |
+| Are tool calls logged with the actor, approval, exact target, normalized arguments, and result? | Agent action cannot be traced to an approval or input |
+| Can the system prove whether a human approved the exact high-risk action performed? | Broad approval reused for a different destructive action |
 
 #### I — Information Disclosure (Confidentiality Threats)
 
@@ -233,6 +258,8 @@ Threat: Sensitive data is exposed to unauthorized parties.
 | Do error messages or stack traces leak internal details? | Verbose error pages reveal DB schema |
 | Are secrets stored in environment variables or dedicated vaults? | Hardcoded credentials in source code |
 | Is access to data stores restricted by least-privilege IAM policies? | Over-permissive S3 bucket policy |
+| Can agent tools, RAG, or memory expose secrets, private prompts, tenant data, or unpublished work to the wrong audience? | Assistant publishes retrieved private context to a public issue |
+| Are retrieved chunks and memory records filtered by tenant, authorization, and data classification before use? | Cross-tenant retrieval leaks confidential records |
 
 #### D — Denial of Service (Availability Threats)
 
@@ -245,6 +272,8 @@ Threat: An attacker makes the system unavailable to legitimate users.
 | Are resource quotas enforced (memory, CPU, storage, connections)? | Memory leak triggered by crafted input |
 | Is the system resilient to dependency failures (circuit breakers)? | Cascading failure from downstream outage |
 | Are there auto-scaling policies and DDoS mitigation services? | Sustained DDoS overwhelms fixed capacity |
+| Can agent loops, repeated tool retries, or retrieval expansion exhaust rate limits, spend, storage, or external API quotas? | Planner repeatedly calls a costly API after ambiguous failures |
+| Are max-iteration, budget, timeout, and backoff limits enforced per user and per task? | Autonomous workflow consumes shared quota and blocks other users |
 
 #### E — Elevation of Privilege (Authorization Threats)
 
@@ -257,6 +286,8 @@ Threat: An attacker gains access to resources or actions beyond their authorized
 | Are privilege boundaries enforced in containerized environments? | Container escape, privileged container |
 | Can an attacker exploit deserialization or injection for code execution? | Remote code execution via insecure deserialization |
 | Are default credentials and unnecessary services removed? | Default admin/admin on management interfaces |
+| Can a low-risk prompt or read-only workflow trigger a high-risk tool without fresh approval? | User asks for a summary and the agent performs a public write |
+| Can the agent chain lower-privilege tools to reach a privileged action or broader tenant scope? | Read token retrieves a secret that enables a write operation |
 
 ### Step 5: Build Component-Threat Matrix
 
@@ -400,6 +431,18 @@ Produce the threat register as a structured table. Each row represents one ident
 | TM-005 | Denial of Service | Unbounded file upload allows resource exhaustion via large payload submission | File Upload `/api/v1/upload` | T1499.003 — Application Exhaustion Flood | High | Medium | High | Enforce max file size (10MB), implement request timeout, add rate limiting per user | Storage Team | Open |
 | TM-006 | Elevation of Privilege | IDOR vulnerability allows regular users to access other users' records by modifying resource ID | User Profile `/api/v1/users/{id}` | T1068 — Exploitation for Privilege Escalation | High | High | Critical | Implement object-level authorization checks, validate resource ownership at service layer | Backend Team | Open |
 
+For agentic systems, use the same threat register schema and make the affected boundary explicit in the `Affected Component` or `Description` field. Examples include `Agent Planner -> Tool Broker`, `Tool Broker -> GitHub Write Tool`, `RAG Retriever -> Vector Store`, and `Human Approval Gate -> Financial Tool`. Do not collapse these into a generic "LLM" component when the risk belongs to a specific tool, memory, approval, or credential boundary.
+
+**Agentic Boundaries Reviewed:**
+
+Include this compact summary before the threat register when agentic components are in scope.
+
+| Boundary | Privilege Class | Approval Required | Evidence Reviewed | Primary Failure Mode |
+|----------|-----------------|-------------------|-------------------|----------------------|
+| Agent Planner -> Tool Broker | write | yes | Tool policy, allowlist, normalized arguments, approval record | Untrusted context changes target or action |
+| RAG Retriever -> Vector Store | read | no | Source ownership, freshness, tenant filter, poisoning controls | Retrieved content spoofed as authoritative policy |
+| Tool Broker -> Cloud Admin Tool | destructive | yes | Credential scope, target account constraints, audit log | Low-risk task escalates into infrastructure change |
+
 ## 6. Framework Reference
 
 ### STRIDE (Microsoft, 2003)
@@ -467,6 +510,14 @@ Threat models become stale as architectures evolve. New services, changed data f
 
 A threat register full of identified threats but no prioritized, assignable mitigations provides no security value. Every identified threat must have a corresponding mitigation with a clear owner, a severity-based SLA, and a tracking mechanism (e.g., linked Jira ticket or GitHub issue). If a threat is accepted rather than mitigated, document the risk acceptance with an approving authority and review date.
 
+### Pitfall 6: Treating Agent Tools as Ordinary API Calls
+
+Agent tools often cross several trust boundaries at once: model reasoning, tool selection, credential use, approval, execution, and audit. Modeling them as ordinary service calls can miss privilege escalation paths where low-risk prompts trigger public writes, financial actions, infrastructure changes, or source-control modifications. Separate the planner, tool broker, executor, credential, target system, and approval boundary before applying STRIDE.
+
+### Pitfall 7: Trusting RAG or Memory as Authoritative Context
+
+Retrieved documents and long-term memory are not automatically trustworthy. They can be stale, cross-tenant, poisoned, or lower-authority than the policy they appear to describe. Treat RAG and memory as data flows with source authority, freshness, tenant isolation, and authorization checks, then fail closed when those checks are missing for high-impact decisions.
+
 ## 8. Prompt Injection Safety Notice
 
 This skill processes user-supplied content that may include system descriptions, architecture diagrams, configuration files, and design documents. The agent must adhere to the following safety constraints:
@@ -489,3 +540,6 @@ This skill processes user-supplied content that may include system descriptions,
 8. **NIST SP 800-154** — Guide to Data-Centric System Threat Modeling — https://csrc.nist.gov/publications/detail/sp/800-154/draft
 9. **STRIDE Original Paper** — Kohnfelder, L. & Garg, P. (1999). "The Threats to Our Products." Microsoft Internal Document.
 10. **OWASP Risk Rating Methodology** — https://owasp.org/www-community/OWASP_Risk_Rating_Methodology
+11. **OWASP Top 10 for Agentic Applications 2026** — https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+12. **OWASP Top 10 for LLM Applications 2025** — https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/
+13. **NIST AI 600-1** — Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile — https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence
