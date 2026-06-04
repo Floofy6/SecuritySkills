@@ -83,7 +83,7 @@ Use Glob and Grep to locate DAST tool configurations, scan policies, and CI inte
 ```
 
 Categorize by:
-- **Tool:** ZAP, Burp Suite Enterprise, Nuclei, HCL AppScan, Invicti.
+- **Tool:** ZAP, Burp Suite DAST, Nuclei, HCL AppScan, Invicti.
 - **Scan type:** Baseline (passive only), full scan (active + passive), API scan.
 - **Integration:** CI/CD pipeline, scheduled, manual.
 
@@ -353,7 +353,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: "http://app:8080"
           rules_file_name: "zap-baseline-rules.tsv"
@@ -384,7 +384,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: ZAP Full Scan
-        uses: zaproxy/action-full-scan@v0.10.0
+        uses: zaproxy/action-full-scan@v0.13.0
         with:
           target: "https://staging.example.com"
           rules_file_name: "zap-full-rules.tsv"
@@ -400,6 +400,7 @@ jobs:
 - [ ] Active scanning NEVER targets production.
 - [ ] Scan results are uploaded in SARIF format for centralized tracking.
 - [ ] ZAP action is pinned to a specific version.
+- [ ] ZAP action pins were checked against the current upstream action repositories, and older pins are documented if intentionally retained.
 - [ ] `fail_action` is set appropriately (baseline: warn; full: error for high/critical).
 - [ ] Target application is ephemeral or restorable (active scanning may modify data).
 - [ ] Scan duration has a timeout to prevent pipeline stalls.
@@ -495,7 +496,7 @@ DAST tools report findings per-URL, producing hundreds of duplicate alerts for t
 
 ### Scope
 - Target application: <name and URL>
-- DAST tool(s): <ZAP, Burp Suite Enterprise, Nuclei, etc.>
+- DAST tool(s): <ZAP, Burp Suite DAST, Nuclei, etc.>
 - Configuration files analyzed: <list of file paths>
 - Date: <assessment date>
 - Frameworks applied: OWASP Top 10:2021, OWASP Testing Guide v4.2
@@ -604,10 +605,13 @@ This skill processes DAST configuration files that may contain target URLs, auth
 - OWASP Web Security Testing Guide v4.2: https://owasp.org/www-project-web-security-testing-guide/v42/
 - OWASP ZAP Documentation: https://www.zaproxy.org/docs/
 - ZAP Automation Framework: https://www.zaproxy.org/docs/automate/automation-framework/
-- ZAP GitHub Actions: https://www.zaproxy.org/docs/docker/github-actions/
+- ZAP Docker User Guide and GitHub Actions: https://www.zaproxy.org/docs/docker/about/
+- ZAP Baseline GitHub Action: https://github.com/zaproxy/action-baseline
+- ZAP Full Scan GitHub Action: https://github.com/zaproxy/action-full-scan
 - ZAP Scan Rules: https://www.zaproxy.org/docs/alerts/
 - OWASP API Security Top 10: https://owasp.org/API-Security/
-- Burp Suite Enterprise Documentation: https://portswigger.net/burp/enterprise
+- Burp Suite DAST Documentation: https://portswigger.net/burp/documentation/dast
+- Burp Suite Documentation: https://portswigger.net/burp/documentation
 - SARIF Specification: https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
 
 ---
