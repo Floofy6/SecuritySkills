@@ -15,40 +15,73 @@ jobs:
 
       - name: Validate frontmatter in skill and role files
         run: |
-          EXIT_CODE=0
-          REQUIRED_FIELDS=("name" "description" "version" "author" "license" "injection-hardened" "allowed-tools" "tags" "role" "phase" "frameworks" "difficulty" "time_estimate")
+          ruby <<'RUBY'
+          require "yaml"
 
-          FILES=$(find skills/ roles/ -name 'SKILL.md' 2>/dev/null || true)
+          required_fields = %w[
+            name
+            description
+            version
+            author
+            license
+            injection-hardened
+            allowed-tools
+            tags
+            role
+            phase
+            frameworks
+            difficulty
+            time_estimate
+          ]
 
-          if [ -z "$FILES" ]; then
-            echo "No .md files found in skills/ or roles/."
+          files = (Dir.glob("skills/**/SKILL.md") + Dir.glob("roles/**/SKILL.md")).sort
+
+          if files.empty?
+            puts "No SKILL.md files found in skills/ or roles/."
             exit 0
-          fi
+          end
 
-          while IFS= read -r file; do
-            echo "Checking: $file"
+          exit_code = 0
 
-            FRONTMATTER=$(awk '/^---$/{if(++c==2) exit} c==1' "$file")
+          files.each do |file|
+            puts "Checking: #{file}"
+            content = File.read(file)
+            match = content.match(/\A---\s*\n(.*?)\n---\s*(?:\n|\z)/m)
 
-            if [ -z "$FRONTMATTER" ]; then
-              echo "  ERROR: No YAML frontmatter found (missing --- delimiters)"
-              EXIT_CODE=1
-              continue
-            fi
+            unless match
+              warn "  ERROR: No YAML frontmatter found (missing --- delimiters)"
+              exit_code = 1
+              next
+            end
 
-            for field in "${REQUIRED_FIELDS[@]}"; do
-              if ! echo "$FRONTMATTER" | grep -qE "^${field}:"; then
-                echo "  ERROR: Missing required field: $field"
-                EXIT_CODE=1
-              fi
-            done
-          done <<< "$FILES"
+            begin
+              frontmatter = YAML.safe_load(match[1], aliases: false)
+            rescue Psych::Exception => e
+              warn "  ERROR: Invalid YAML frontmatter: #{e.message}"
+              exit_code = 1
+              next
+            end
 
-          if [ "$EXIT_CODE" -ne 0 ]; then
-            echo ""
-            echo "FAIL: One or more files have missing required frontmatter fields."
-            exit 1
-          fi
+            unless frontmatter.is_a?(Hash)
+              warn "  ERROR: YAML frontmatter must parse to a mapping"
+              exit_code = 1
+              next
+            end
 
-          echo ""
-          echo "All frontmatter checks passed."
+            required_fields.each do |field|
+              unless frontmatter.key?(field)
+                warn "  ERROR: Missing required field: #{field}"
+                exit_code = 1
+              end
+            end
+          end
+
+          if exit_code != 0
+            puts ""
+            warn "FAIL: One or more files have invalid or incomplete YAML frontmatter."
+            exit exit_code
+          end
+
+          puts ""
+          puts "All frontmatter checks passed."
+          RUBY
