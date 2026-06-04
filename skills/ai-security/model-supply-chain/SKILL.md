@@ -445,7 +445,7 @@ Assess whether architectural and procedural controls exist to detect model backd
 
 ## References
 
-- OWASP Top 10 for LLM Applications (2025), LLM03: Supply Chain Vulnerabilities -- https://genai.owasp.org/llmrisk/llm03-supply-chain-vulnerabilities/ (Note: LLM03 in the 2025 edition covers supply chain; verify current numbering at https://genai.owasp.org)
+- OWASP Top 10 for LLM Applications (2025), LLM03: Supply Chain Vulnerabilities -- https://genai.owasp.org/llmrisk/llm032025-supply-chain/ (Note: LLM03 in the 2025 edition covers supply chain; verify current numbering at https://genai.owasp.org)
 - SLSA v1.0 Specification -- https://slsa.dev/spec/v1.0/
 - MITRE ATLAS -- https://atlas.mitre.org
 - Mithril Security. "PoisonGPT: How We Hid a Lobotomized LLM on Hugging Face to Spread Fake News" (2023) -- https://blog.mithrilsecurity.io/poisongpt-how-we-hid-a-lobotomized-llm-on-hugging-face-to-spread-fake-news/

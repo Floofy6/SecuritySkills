@@ -477,7 +477,7 @@ user input -> prompt assembly -> LLM API -> completion -> output -> logging/stor
 ## References
 
 - NIST AI Risk Management Framework 1.0 (January 2023) -- https://www.nist.gov/aiframework
-- OWASP Top 10 for LLM Applications (2025), LLM02: Sensitive Information Disclosure -- https://genai.owasp.org/llmrisk/llm02-sensitive-information-disclosure/
+- OWASP Top 10 for LLM Applications (2025), LLM02: Sensitive Information Disclosure -- https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/
 - EU AI Act, Regulation (EU) 2024/1689 -- https://eur-lex.europa.eu/eli/reg/2024/1689
 - GDPR, Regulation (EU) 2016/679 -- https://eur-lex.europa.eu/eli/reg/2016/679
 - CCPA/CPRA, California Civil Code Sec. 1798.100-199 -- https://leginfo.legislature.ca.gov/
