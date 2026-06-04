@@ -6,13 +6,13 @@ description: >
   workflows, GitLab CI configs, Jenkins pipelines, or when discussing supply
   chain security. Produces a pipeline security assessment with SLSA level
   determination and CICD-SEC risk findings.
-tags: [devsecops, cicd, pipeline, supply-chain]
+tags: [devsecops, cicd, pipeline, supply-chain, self-hosted-runners]
 role: [security-engineer, devsecops]
 phase: [build, deploy]
 frameworks: [SLSA-v1.0, OWASP-CICD-Top-10]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.0"
+version: "1.1.0"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -141,6 +141,52 @@ Read each pipeline configuration file and evaluate against SLSA v1.0 build track
 
 **Determination logic:** The repository achieves the highest level for which ALL checklist items are satisfied. Partial compliance at a given level means the repository remains at the level below.
 
+#### Self-hosted Runner Trust Boundary Gate
+
+When any workflow uses self-hosted, larger, or private-networked runners, build a separate runner evidence record before assigning SLSA L3 or passing CICD-SEC-4/5/7. A `runs-on: self-hosted` label is not enough evidence by itself; labels can hide shared infrastructure, broad repository access, persistent workspaces, and network reach.
+
+**Evidence to collect:**
+
+| Field | Required Evidence | Risk if Missing |
+|-------|-------------------|-----------------|
+| Runner selector | Exact `runs-on` labels, runner group name, and whether the selector can match multiple runner pools | A trusted workflow may land on a runner shared with lower-trust jobs |
+| Repository/workflow access | Runner group policy showing selected repositories and, where supported, selected workflows | Organization-level or default groups can expose the runner to unrelated repositories |
+| Public fork exposure | Whether `pull_request`, `pull_request_target`, or external-fork approvals can schedule jobs on the runner | Unreviewed public PR code can execute on internal or stateful infrastructure |
+| Ephemeral/JIT proof | Evidence that the runner is one-job, just-in-time, or rebuilt from a clean image before each job | Persistent workspaces can leak source, tokens, build artifacts, or tool state between jobs |
+| Secret and network reach | Secrets, cloud metadata services, package registries, deployment networks, or private endpoints reachable from the runner | Runner compromise can become credential theft or internal network pivoting |
+| Concurrency and process isolation | Whether another job can run on the same host/user while secrets are present as env vars or command-line arguments | A co-resident job can observe process lists, temp files, sockets, or caches |
+| Privileged runtime use | Docker socket mounts, `--privileged`, nested virtualization, Kubernetes service accounts, or host path mounts | Pipeline code can escape the job boundary and control the runner host |
+| Update and decommissioning | Runner version/update status, token rotation, image rebuild cadence, and stale runner removal | Old or abandoned runners can retain credentials and vulnerable tooling |
+
+**GitHub Actions patterns to inspect:**
+
+```yaml
+# Self-hosted runner selectors can be broad.
+runs-on: self-hosted
+runs-on: [self-hosted, linux, x64]
+runs-on:
+  group: production-runners
+  labels: linux
+
+# Public PRs on private-networked runners need explicit evidence of isolation.
+on:
+  pull_request:
+  pull_request_target:
+
+# Privileged runtime access changes runner compromise impact.
+- run: docker run --privileged ...
+- run: docker build -v /var/run/docker.sock:/var/run/docker.sock ...
+```
+
+**Classification guidance:**
+
+- **Critical:** Public or external-contributor PR code can run on a self-hosted/private-networked runner that has production secrets, cloud metadata access, deployment credentials, or private network reach.
+- **High:** A shared organization/enterprise runner group is available to repositories or workflows with different trust levels and lacks selected-repository/workflow restrictions.
+- **High:** A persistent runner handles sensitive builds without proof of clean image rebuild, workspace cleanup, one-job isolation, and runner token rotation.
+- **Medium:** Runner labels are too broad to prove which pool executes the job, or runner group access cannot be verified from available evidence.
+- **Medium:** Jobs use privileged Docker, host mounts, or Docker socket access without documenting why the runner host remains isolated from secrets and later jobs.
+- **Not Evaluable:** Workflow YAML shows self-hosted/private runner usage but the runner group policy, fork workflow policy, ephemeral/JIT design, or network reach evidence is unavailable.
+
 ---
 
 ### Step 3: OWASP CICD-SEC Risk Evaluation
@@ -252,6 +298,7 @@ on: pull_request_target
 
 - **Indirect PPE:** Workflows that execute scripts, Makefiles, or config files that exist in the repository and can be modified by a pull request.
 - **Public fork access:** Whether the repository allows workflows to run on pull requests from forks with access to secrets.
+- **Runner trust boundary:** Whether unreviewed PR code can run on self-hosted, larger, or private-networked runners that retain state, expose secrets, or reach internal services.
 - Injection of untrusted input into shell commands:
 
 ```yaml
@@ -264,7 +311,7 @@ on: pull_request_target
     PR_TITLE: ${{ github.event.pull_request.title }}
 ```
 
-**Finding format:** Report any `pull_request_target` usage, direct expression injection in `run:` steps, fork workflow policies, and whether PR code can influence privileged pipelines.
+**Finding format:** Report any `pull_request_target` usage, direct expression injection in `run:` steps, fork workflow policies, whether PR code can influence privileged pipelines, and whether external PR jobs can schedule onto self-hosted/private runner groups.
 
 ---
 
@@ -277,6 +324,8 @@ on: pull_request_target
 - Secrets available to all workflows rather than scoped to specific environments.
 - No conditional checks on branch or environment before accessing sensitive resources.
 - Self-hosted runners shared across repositories with different trust levels.
+- Default or organization-wide runner groups that do not restrict repository/workflow access.
+- Broad `runs-on` labels that allow production deploy jobs to land on general-purpose runner pools.
 
 **Grep patterns:**
 
@@ -292,7 +341,7 @@ if: github.ref == 'refs/heads/main'
 runs-on: self-hosted  # Shared runners are a risk
 ```
 
-**Finding format:** Report whether secrets and deployment capabilities are scoped to appropriate environments and branches, and whether runner infrastructure is properly segmented.
+**Finding format:** Report whether secrets and deployment capabilities are scoped to appropriate environments and branches, whether runner groups are restricted to selected repositories/workflows, and whether runner infrastructure is segmented by trust level.
 
 ---
 
@@ -340,6 +389,8 @@ runs-on: self-hosted  # Shared runners are a risk
 - Insecure runner images or outdated runner versions.
 - Missing network controls on build infrastructure.
 - Docker-in-Docker without appropriate security boundaries.
+- Persistent workspaces, shared Unix users, shared caches, or concurrent jobs on hosts that process secrets.
+- Missing evidence that just-in-time or ephemeral runners start from a clean image and are removed after one job.
 
 **Grep patterns:**
 
@@ -351,9 +402,13 @@ ACTIONS_STEP_DEBUG: true
 # Check for privileged Docker operations
 --privileged
 docker.sock
+
+# Check for broad self-hosted runner selectors
+runs-on: self-hosted
+runs-on: [self-hosted, linux]
 ```
 
-**Finding format:** Report runner configuration security, debug settings, and any privileged operations in the build environment.
+**Finding format:** Report runner configuration security, debug settings, privileged operations in the build environment, and whether runner lifecycle evidence proves clean one-job isolation.
 
 ---
 
@@ -490,6 +545,12 @@ Produce the final report using the following structure:
 - **Description:** <what was found>
 - **Remediation:** <specific fix>
 
+### Runner Trust Boundary Evidence
+
+| Workflow | Runner Selector | Runner Group / Access Policy | Public Fork Exposure | Ephemeral/JIT Evidence | Secrets / Network Reach | Status |
+|----------|-----------------|------------------------------|----------------------|------------------------|-------------------------|--------|
+| `<workflow>` | `<runs-on labels or group>` | `<selected repos/workflows or unknown>` | `<yes/no/unknown>` | `<one-job clean image / persistent / unknown>` | `<secrets, metadata, private network>` | `Pass / Fail / Not Evaluable` |
+
 ### Prioritized Remediation Plan
 
 1. **[Critical]** <CICD-SEC-X> -- <action item>
@@ -550,6 +611,8 @@ This skill processes user-supplied content including CI/CD configuration files, 
 - SLSA Build Track: https://slsa.dev/spec/v1.0/levels#build-track
 - OWASP Top 10 CI/CD Security Risks: https://owasp.org/www-project-top-10-ci-cd-security-risks/
 - GitHub Actions Security Hardening: https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions
+- GitHub Actions Secure Use Reference: https://docs.github.com/en/actions/reference/security/secure-use
+- GitHub Runner Groups Access Control: https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/control-access
 - Sigstore / Cosign: https://docs.sigstore.dev/
 - SLSA GitHub Generator: https://github.com/slsa-framework/slsa-github-generator
 
@@ -557,4 +620,5 @@ This skill processes user-supplied content including CI/CD configuration files, 
 
 ## Changelog
 
+- **1.1.0** -- Added self-hosted/private runner trust-boundary evidence, severity guidance, and report fields for runner group access, public fork exposure, ephemeral/JIT proof, secrets/network reach, and privileged runtime use.
 - **1.0.0** -- Initial release. Full coverage of SLSA v1.0 build track and OWASP Top 10 CI/CD Security Risks (CICD-SEC-1 through CICD-SEC-10).
