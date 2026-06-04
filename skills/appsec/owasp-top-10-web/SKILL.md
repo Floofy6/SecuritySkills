@@ -12,7 +12,7 @@ phase: [build, review]
 frameworks: [OWASP-Top-10-2021]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.1"
+version: "1.0.2"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -303,6 +303,8 @@ failedAttempts|failed_attempts|lockout|max_attempts
 - Directory listing enabled on web servers.
 - Default or sample pages/applications deployed to production.
 - Missing or misconfigured security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
+- Content Security Policy present but weakened by broad executable sources, reusable/static nonces, missing `frame-ancestors`, or `unsafe-inline` without a documented migration exception.
+- HSTS present but too short-lived for production, missing `includeSubDomains` where subdomains are in scope, or claiming preload readiness without validating the preload requirements.
 - Cloud storage buckets with public access (S3, GCS, Azure Blob).
 - XML parsers configured to allow external entities (XXE).
 - Verbose error pages that expose stack traces, framework versions, or internal paths.
@@ -331,11 +333,23 @@ DEBUG\s*=\s*True|debug\s*:\s*true|NODE_ENV.*development
 DocumentBuilderFactory|SAXParser|XMLReader|etree\.parse|lxml.*parse
 # Missing security headers
 X-Content-Type-Options|X-Frame-Options|Content-Security-Policy|Strict-Transport-Security
+# Weak browser policy evidence
+unsafe-inline|unsafe-eval|script-src.*\*|nonce-[A-Za-z0-9+/=]{6,}|Strict-Transport-Security.*max-age=([0-9]{1,7})([^0-9]|$)
 # Default credentials
 admin.*admin|password.*password|default.*key|changeme|TODO.*password
 # Verbose errors
 stack.*trace|stackTrace|detailed.*error|showErrors\s*:\s*true
 ```
+
+**Security Header Evidence Gate:**
+
+Treat header presence as evidence collection, not as proof of hardening. Before scoring security headers as implemented, record:
+
+- **CSP executable-source policy:** `default-src` and `script-src` must avoid broad wildcards, `http:`, and `unsafe-eval`. If inline scripts are still required, require per-response nonces or hashes and verify the nonce is generated with a CSPRNG for each response rather than hard-coded or reused.
+- **CSP framing and form boundaries:** Require `frame-ancestors` for clickjacking control and `form-action` for form submission boundaries when the application renders forms.
+- **HSTS scope:** Require `Strict-Transport-Security` over HTTPS with production `max-age >= 31536000`. Require `includeSubDomains` when the organization can safely commit all covered subdomains to HTTPS.
+- **Preload claims:** Only mark HSTS preload as verified when the header includes `preload`, satisfies the preload list requirements, and the team has confirmed all covered hosts are HTTPS-ready. Otherwise record it as "not claimed" or "not ready" instead of a failure.
+- **Reverse proxy ownership:** If headers are set at a CDN, ingress, or reverse proxy, require configuration evidence for that layer and one runtime response sample from the protected route class.
 
 **Mitigations:**
 
@@ -343,7 +357,7 @@ stack.*trace|stackTrace|detailed.*error|showErrors\s*:\s*true
 - Remove all default credentials, sample applications, and unused features before deployment.
 - Set `DEBUG=False` / `NODE_ENV=production` in all production configurations.
 - Disable XML external entity processing in all XML parsers by default.
-- Deploy security headers via middleware or reverse proxy — audit with tools like securityheaders.com.
+- Deploy security headers via middleware or reverse proxy, and verify their effective runtime values on representative routes.
 - Configure custom error pages that reveal no internal details; log full errors server-side only.
 - Run periodic configuration audits (CIS Benchmarks, cloud provider security tools).
 
@@ -712,4 +726,6 @@ This skill processes source code and configuration files that may contain advers
 - MITRE CWE List — https://cwe.mitre.org/
 - NIST SP 800-63B Digital Identity Guidelines — https://pages.nist.gov/800-63-3/sp800-63b.html
 - OWASP Cheat Sheet Series — https://cheatsheetseries.owasp.org/
+- OWASP Content Security Policy Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html
+- OWASP HTTP Strict Transport Security Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Strict_Transport_Security_Cheat_Sheet.html
 - OWASP Application Security Verification Standard (ASVS) — https://owasp.org/www-project-application-security-verification-standard/

@@ -667,7 +667,10 @@ RequireDigit\s*=\s*false|RequiredLength\s*=\s*[1-5]\b|RequireUppercase\s*=\s*fal
 
 # Missing security headers
 # (absence check — grep for these to confirm they exist)
-X-Content-Type-Options|X-Frame-Options|Content-Security-Policy
+X-Content-Type-Options|X-Frame-Options|Content-Security-Policy|Strict-Transport-Security
+
+# Weak CSP / HSTS evidence
+unsafe-inline|unsafe-eval|script-src.*\*|nonce-[A-Za-z0-9+/=]{6,}|MaxAge\s*=\s*TimeSpan\.From(Days|Hours)\([0-9]{1,2}\)
 
 # Swagger/OpenAPI exposed unconditionally
 UseSwagger\(\)|UseSwaggerUI\(\)
@@ -727,21 +730,48 @@ builder.Services.Configure<IdentityOptions>(options =>
 });
 ```
 
-**3. Missing security headers**
+**3. Missing or weak browser security headers**
 
 ```csharp
-// SECURE — add security headers via middleware
+// VULNERABLE — CSP exists, but unsafe-inline makes reflected/stored XSS easier to execute
 app.Use(async (context, next) =>
 {
+    context.Response.Headers.Append("Content-Security-Policy",
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; frame-ancestors 'none';");
+    await next();
+});
+```
+
+```csharp
+// SECURE — add security headers via middleware and use a fresh nonce for inline script exceptions
+using System.Security.Cryptography;
+
+app.Use(async (context, next) =>
+{
+    var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+    context.Items["CspNonce"] = nonce;
+
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
     context.Response.Headers.Append("X-Frame-Options", "DENY");
     context.Response.Headers.Append("X-XSS-Protection", "0"); // modern recommendation: disable, rely on CSP
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
     context.Response.Headers.Append("Content-Security-Policy",
-        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none';");
+        $"default-src 'self'; script-src 'self' 'nonce-{nonce}'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'; form-action 'self';");
     context.Response.Headers.Append("Permissions-Policy",
         "camera=(), microphone=(), geolocation=()");
     await next();
+});
+```
+
+When reviewing this pattern, confirm that Razor/Blazor views apply the same per-response nonce to only the intended inline scripts and that the nonce is not hard-coded in configuration, constants, or templates.
+
+```csharp
+// SECURE — configure production HSTS with deliberate scope and lifetime
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+    options.Preload = true; // only after validating all covered hosts are HTTPS-ready
 });
 ```
 
