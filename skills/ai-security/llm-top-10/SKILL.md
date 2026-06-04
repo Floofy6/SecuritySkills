@@ -495,7 +495,7 @@ When performing a review using this skill:
 ## 9. References
 
 - OWASP Top 10 for LLM Applications 2025: https://genai.owasp.org/llm-top-10/
-- OWASP LLM AI Security & Governance Checklist: https://genai.owasp.org/llm-top-10/llm-ai-security-and-governance-checklist/
+- OWASP Top 10 for LLM Applications 2025 resource: https://genai.owasp.org/resource/owasp-top-10-for-llm-applications-2025/
 - OWASP GenAI Project Home: https://genai.owasp.org/
 - LLM01:2025 Prompt Injection: https://genai.owasp.org/llmrisk/llm01-prompt-injection/
 - LLM02:2025 Sensitive Information Disclosure: https://genai.owasp.org/llmrisk/llm02-sensitive-information-disclosure/
