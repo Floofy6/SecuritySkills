@@ -12,7 +12,7 @@ phase: [build, review]
 frameworks: [OWASP-Top-10-2021]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.1"
+version: "1.0.2"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -247,6 +247,8 @@ setHeader\(.*req\.|res\.set\(.*req\.|response\.addHeader.*request\.getParameter
 - Missing rate limiting on sensitive operations (login, password reset, OTP verification, account creation).
 - No account lockout or progressive delays after repeated failed authentication attempts.
 - Password reset flows that leak whether an account exists (different responses for valid vs. invalid emails).
+- Password reset or magic-link tokens that are predictable, reusable, long-lived, stored in plaintext, logged, or accepted after password change.
+- Account state changes during recovery before a valid reset token is presented.
 - Multi-step workflows that can be completed out of order or with steps skipped.
 - Missing trust boundaries — internal services accessible without authentication from external networks.
 - Absence of security requirements or threat model documentation.
@@ -275,15 +277,30 @@ setHeader\(.*req\.|res\.set\(.*req\.|response\.addHeader.*request\.getParameter
 rateLimit|rate_limit|throttle|slowDown
 # Account enumeration
 "user not found"|"email not found"|"no account"|"invalid email"
+# Password reset / recovery token flows
+forgot.?password|reset.?password|passwordResetToken|resetToken|magic.?link|recovery.?token
 # Missing lockout
 failedAttempts|failed_attempts|lockout|max_attempts
 ```
+
+**Password Reset Evidence Gate:**
+
+For password reset, account recovery, and magic-link flows, do not stop at "a reset email is sent." Record evidence for:
+
+- **Generic request behavior:** The request endpoint returns the same response shape and timing class whether or not the account exists.
+- **Token generation:** Tokens or codes are generated with a cryptographically safe random source or a framework token provider, are long enough to resist brute force, and are scoped to one account and purpose.
+- **Token storage:** Custom reset tokens are stored only as a keyed hash or strong one-way hash, never plaintext. Framework-protected tokens must have a configured lifetime.
+- **Single-use and expiry:** Tokens expire after an appropriate short period, are invalidated after successful password change, and older outstanding reset tokens are revoked when a new one is issued or the password changes.
+- **No premature account mutation:** The application does not lock, disable, change MFA, change email, or rotate credentials until the presented token is validated.
+- **Leakage controls:** Reset URLs are not logged, not returned in API responses, not sent to third-party redirects, and reset pages set a restrictive `Referrer-Policy` such as `no-referrer`.
+- **Abuse protection:** Request and token-validation endpoints have rate limits or equivalent throttling so attackers cannot enumerate accounts or brute-force tokens.
 
 **Mitigations:**
 
 - Establish threat modeling early in the design phase (STRIDE, PASTA, or attack trees).
 - Implement rate limiting and account lockout on all authentication and sensitive endpoints.
 - Return generic error messages for authentication failures — never reveal whether a username or email exists.
+- Use single-use, time-limited password reset tokens stored securely, and invalidate reset tokens after use or password change.
 - Enforce all business rules server-side; treat the client as untrusted.
 - Define and enforce trust boundaries between components and network zones.
 - Write abuse cases and negative test cases alongside functional requirements.
@@ -712,4 +729,6 @@ This skill processes source code and configuration files that may contain advers
 - MITRE CWE List — https://cwe.mitre.org/
 - NIST SP 800-63B Digital Identity Guidelines — https://pages.nist.gov/800-63-3/sp800-63b.html
 - OWASP Cheat Sheet Series — https://cheatsheetseries.owasp.org/
+- OWASP Forgot Password Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html
+- OWASP Authentication Cheat Sheet — https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
 - OWASP Application Security Verification Standard (ASVS) — https://owasp.org/www-project-application-security-verification-standard/

@@ -829,6 +829,9 @@ ValidateIssuer\s*=\s*false|ValidateAudience\s*=\s*false|ValidateLifetime\s*=\s*f
 # Missing account lockout
 LockoutEnabled|MaxFailedAccessAttempts|DefaultLockoutTimeSpan
 
+# Password reset / account recovery token handling
+GeneratePasswordResetTokenAsync|ResetPasswordAsync|DataProtectionTokenProviderOptions|resetToken|passwordResetToken|magicLink
+
 # Hardcoded JWT signing keys
 new SymmetricSecurityKey\(Encoding.*"[A-Za-z0-9+/=]{16,}"
 
@@ -897,7 +900,58 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 ```
 
-**3. Session fixation — not regenerating session on authentication**
+**3. Password reset token lifecycle**
+
+```csharp
+// VULNERABLE — weak/plaintext reset token, account mutated before token validation
+var token = new Random().Next(100000, 999999).ToString();
+user.PasswordResetToken = token;
+user.PasswordResetExpiresAt = DateTimeOffset.UtcNow.AddDays(7);
+user.LockoutEnd = DateTimeOffset.MaxValue;
+await _db.SaveChangesAsync();
+await _email.SendAsync(user.Email, $"https://app.example/reset?token={token}");
+```
+
+```csharp
+// SECURE — ASP.NET Core Identity token provider with short lifetime and generic request response
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+{
+    options.TokenLifespan = TimeSpan.FromMinutes(30);
+});
+
+app.MapPost("/forgot-password", async (
+    ForgotPasswordRequest request,
+    UserManager<ApplicationUser> users,
+    IEmailSender email) =>
+{
+    var user = await users.FindByEmailAsync(request.Email);
+    if (user is not null)
+    {
+        var token = await users.GeneratePasswordResetTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        await email.SendPasswordResetAsync(user.Email!, encodedToken);
+    }
+
+    return Results.Ok(new { message = "If the account exists, reset instructions have been sent." });
+}).RequireRateLimiting("auth");
+
+app.MapPost("/reset-password", async (
+    ResetPasswordRequest request,
+    UserManager<ApplicationUser> users) =>
+{
+    var user = await users.FindByEmailAsync(request.Email);
+    if (user is null)
+        return Results.BadRequest();
+
+    var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+    var result = await users.ResetPasswordAsync(user, token, request.NewPassword);
+    return result.Succeeded ? Results.NoContent() : Results.BadRequest();
+}).RequireRateLimiting("auth");
+```
+
+When reviewing custom reset-token implementations, require evidence that only a token hash is stored server-side, the plaintext token is sent only through the side channel, old tokens are revoked after use or password change, reset URLs are not logged, and the reset page sends `Referrer-Policy: no-referrer`.
+
+**4. Session fixation — not regenerating session on authentication**
 
 ```csharp
 // SECURE — clear and regenerate session on login
