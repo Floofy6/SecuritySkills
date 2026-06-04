@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Overbroad Extension",
+  "version": "1.0.0",
+  "permissions": [
+    "cookies",
+    "history",
+    "downloads",
+    "nativeMessaging",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "externally_connectable": {
+    "matches": [
+      "*://*/*"
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "config.json",
+        "helpers/*.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
