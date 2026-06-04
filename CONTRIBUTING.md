@@ -93,8 +93,8 @@ Author a completely new security skill from scratch.
 skills/
   [category]/
     [skill-name]/
-      skill.yaml          # Skill definition (detection + remediation)
-      README.md           # Human-readable description, examples, rationale
+      SKILL.md            # Skill entrypoint with YAML frontmatter and guidance
+      *.md                # Optional supporting references, examples, or checklists
       tests/
         vulnerable/       # Code samples that SHOULD trigger the skill
         benign/           # Code samples that should NOT trigger the skill
@@ -111,51 +111,31 @@ skills/
 
 ## Skill Format Reference
 
-Each skill is defined in `skill.yaml` with the following structure:
+Each skill is defined in `SKILL.md` as Markdown with YAML frontmatter. The frontmatter follows this structure:
 
 ```yaml
+---
 name: descriptive-skill-name
-version: "1.0"
+description: >
+  One paragraph explaining what this skill does, when the agent should use it,
+  and what output it produces.
+tags: [appsec, review]
+role: [security-engineer, appsec-engineer]
+phase: [design, review]
+frameworks: [CWE-XXX, OWASP-ASVS]
+difficulty: intermediate
+time_estimate: "30-60min"
+version: "1.0.0"
 author: your-github-handle
-category: injection | xss | auth | crypto | secrets | config | dependency | other
-severity: critical | high | medium | low
-languages:
-  - python
-  - javascript
-  # ... applicable languages
-
-description: |
-  One paragraph explaining what this skill detects, why it matters,
-  and what the real-world impact of this vulnerability class is.
-
-detection:
-  patterns:
-    - pattern: "the detection pattern or rule"
-      description: "what this specific pattern catches"
-  exceptions:
-    - pattern: "patterns to exclude (reduce false positives)"
-      description: "why this is safe"
-
-remediation:
-  approach: |
-    Describe the fix strategy in plain English.
-  automated: true | false
-  fix:
-    description: "what the automated fix does"
-    # fix implementation details
-
-references:
-  - url: "https://cwe.mitre.org/data/definitions/XXX.html"
-    description: "CWE reference"
-  - url: "https://owasp.org/..."
-    description: "OWASP reference"
-
-metadata:
-  cwe: ["CWE-XXX"]
-  owasp: ["A01:2021"]
-  created: "YYYY-MM-DD"
-  last_updated: "YYYY-MM-DD"
+license: MIT
+allowed-tools: Read, Grep, Glob
+context: fork
+injection-hardened: true
+argument-hint: "[target-file-or-directory]"
+---
 ```
+
+After the frontmatter, use Markdown sections for when to use the skill, required context, process, output format, examples, references, and changelog.
 
 ---
 
