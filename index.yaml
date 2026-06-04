@@ -438,7 +438,7 @@ skills:
     role: [soc-analyst, security-engineer]
     phase: [operate]
     activity: [design, monitor]
-    frameworks: [MITRE-ATT&CK-v16, Sigma, Palantir-ADS]
+    frameworks: [MITRE-ATT&CK-v19.1, Sigma, Palantir-ADS]
     difficulty: advanced
     time_estimate: "30-60min"
     file: skills/secops/detection-engineering/SKILL.md
