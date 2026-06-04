@@ -184,16 +184,20 @@ environment:
 
 **What to look for:**
 
-- Overly permissive `permissions` blocks in GitHub Actions (or absence of permissions, which defaults to read-write).
+- Overly permissive `permissions` blocks in GitHub Actions.
+- Missing `permissions` blocks when the enterprise, organization, or repository default workflow permission is unknown or set to read/write.
 - Use of `permissions: write-all` or top-level write permissions without scoping.
 - Shared service accounts across environments.
 - Missing `CODEOWNERS` file or broad ownership patterns.
-- Workflows that do not pin the `GITHUB_TOKEN` to minimum required permissions.
+- Workflows that do not scope the `GITHUB_TOKEN` to minimum required permissions.
+- `pull_request_target` workflows, where the `GITHUB_TOKEN` is granted read/write repository permission unless explicitly reduced.
 
 **Specific patterns in GitHub Actions:**
 
 ```yaml
-# BAD: No permissions block (defaults to read-write for everything)
+# RISKY: No permissions block. Effective permission inherits the enterprise,
+# organization, or repository default workflow permission, so the reviewer must
+# verify whether the default is read-only or read/write.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -207,7 +211,17 @@ permissions:
   packages: write
 ```
 
-**Finding format:** Report the effective permission model, whether least-privilege is enforced, and whether identity controls (CODEOWNERS, required reviewers) are in place.
+**Default-permission evidence to record:**
+
+| Evidence | Pass / Fail / Not Evaluable |
+|---|---|
+| Top-level workflow `permissions` block present | Pass / Fail |
+| Job-level `permissions` blocks narrow broader workflow defaults | Pass / Fail / Not Evaluable |
+| Repository/organization default workflow permission verified as read-only | Pass / Fail / Not Evaluable |
+| `pull_request_target` workflows explicitly reduce permissions | Pass / Fail / Not Evaluable |
+| Write scopes map to the minimum job requirement | Pass / Fail / Not Evaluable |
+
+**Finding format:** Report the effective permission model, whether least-privilege is enforced, whether the platform default workflow permission was verified, and whether identity controls (CODEOWNERS, required reviewers) are in place. If the workflow has no `permissions` block and the platform default cannot be inspected from the supplied files, mark the effective token scope as `Not Evaluable from Config` instead of assuming read/write.
 
 ---
 
@@ -550,6 +564,7 @@ This skill processes user-supplied content including CI/CD configuration files, 
 - SLSA Build Track: https://slsa.dev/spec/v1.0/levels#build-track
 - OWASP Top 10 CI/CD Security Risks: https://owasp.org/www-project-top-10-ci-cd-security-risks/
 - GitHub Actions Security Hardening: https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions
+- GitHub Actions `GITHUB_TOKEN` permissions: https://docs.github.com/en/actions/reference/authentication-in-a-workflow#permissions-for-the-github_token
 - Sigstore / Cosign: https://docs.sigstore.dev/
 - SLSA GitHub Generator: https://github.com/slsa-framework/slsa-github-generator
 
