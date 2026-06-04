@@ -1,6 +1,6 @@
 # C# and .NET -- Secure Code Review Patterns
 
-A language-specific supplement for the `secure-code-review` skill, covering C# on .NET 6+, ASP.NET Core, Entity Framework Core, and Blazor. This file provides vulnerable-and-remediated code pairs, grep-ready detection patterns, and a configuration checklist aligned to the parent skill's review steps, OWASP ASVS 4.0.3 controls, and CWE identifiers.
+A language-specific supplement for the `secure-code-review` skill, covering C# on .NET 6+, ASP.NET Core, Entity Framework Core, and Blazor. This file provides vulnerable-and-remediated code pairs, grep-ready detection patterns, and a configuration checklist aligned to the parent skill's review steps, OWASP ASVS 5.0.0 controls, and CWE identifiers.
 
 ---
 
@@ -1071,5 +1071,6 @@ builder.Services.AddDataProtection()
 - **Microsoft Secure Coding Guidelines:** https://learn.microsoft.com/en-us/dotnet/standard/security/secure-coding-guidelines
 - **ASP.NET Core Security Documentation:** https://learn.microsoft.com/en-us/aspnet/core/security/
 - **BinaryFormatter Security Guide:** https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide
-- **OWASP ASVS 4.0.3:** https://owasp.org/www-project-application-security-verification-standard/
+- **OWASP ASVS 5.0.0:** https://owasp.org/www-project-application-security-verification-standard/
+- **OWASP ASVS 5.0.0 release:** https://github.com/OWASP/ASVS/releases/tag/v5.0.0_release
 - **CWE Top 25 (2024):** https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html

@@ -35,7 +35,7 @@ skills:
     role: [appsec-engineer, security-engineer]
     phase: [build, review]
     activity: [review, assess]
-    frameworks: [OWASP-ASVS, CWE-Top-25, OWASP-Top-10]
+    frameworks: [OWASP-ASVS-5.0.0, CWE-Top-25, OWASP-Top-10]
     difficulty: intermediate
     time_estimate: "15-45min per module"
     file: skills/appsec/secure-code-review/SKILL.md

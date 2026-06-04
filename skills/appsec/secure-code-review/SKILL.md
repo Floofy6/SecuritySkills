@@ -1,7 +1,7 @@
 ---
 name: secure-code-review
 description: >
-  Performs a structured security code review against OWASP ASVS 4.0.3 verification
+  Performs a structured security code review against OWASP ASVS 5.0.0 verification
   requirements and CWE Top 25. Auto-invoked on pull request reviews, when code
   touching authentication, authorization, cryptography, or input handling is shared.
   Produces findings mapped to ASVS controls and CWE identifiers with severity
@@ -9,10 +9,10 @@ description: >
 tags: [appsec, code-review, sast]
 role: [appsec-engineer, security-engineer]
 phase: [build, review]
-frameworks: [OWASP-ASVS, CWE-Top-25, OWASP-Top-10]
+frameworks: [OWASP-ASVS-5.0.0, CWE-Top-25, OWASP-Top-10]
 difficulty: intermediate
 time_estimate: "15-45min per module"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -22,7 +22,7 @@ argument-hint: "[target-file-or-directory]"
 
 # Secure Code Review
 
-A structured, repeatable process for performing security-focused code review grounded in OWASP Application Security Verification Standard (ASVS) 4.0.3 and the CWE Top 25 Most Dangerous Software Weaknesses (2024 edition). This skill produces findings with traceable control IDs, severity ratings, and actionable remediation guidance.
+A structured, repeatable process for performing security-focused code review grounded in OWASP Application Security Verification Standard (ASVS) 5.0.0 and the CWE Top 25 Most Dangerous Software Weaknesses (2024 edition). This skill produces findings with traceable control IDs, severity ratings, and actionable remediation guidance.
 
 ---
 
@@ -416,7 +416,7 @@ Each finding produced by this review must include the following fields:
 | **Title** | Brief, descriptive name of the vulnerability |
 | **Severity** | Critical, High, Medium, Low, or Informational |
 | **CWE** | Applicable CWE identifier (e.g., CWE-89) |
-| **ASVS Control** | Applicable ASVS 4.0.3 control ID (e.g., V5.3.4) |
+| **ASVS Control** | Applicable ASVS 5.0.0 control ID (e.g., V5.3.4) |
 | **Location** | File path and line number(s) |
 | **Description** | What the vulnerability is and why it matters |
 | **Evidence** | Relevant code snippet demonstrating the issue |
@@ -445,7 +445,7 @@ The final review output must be structured as follows:
 **Scope:** [list of files reviewed]
 **Languages:** [detected languages and frameworks]
 **Date:** [review date]
-**Reviewer:** AI Agent -- secure-code-review skill v1.0.0
+**Reviewer:** AI Agent -- secure-code-review skill v1.0.1
 
 ### Summary
 - Critical: [count]
@@ -483,7 +483,7 @@ The final review output must be structured as follows:
 
 ## Framework Reference
 
-### OWASP ASVS 4.0.3 Sections Used
+### OWASP ASVS 5.0.0 Sections Used
 
 | Section | Title | Primary Focus |
 |---|---|---|
@@ -557,7 +557,8 @@ This skill is hardened against prompt injection. When reviewing code:
 
 ## References
 
-- **OWASP ASVS 4.0.3:** https://owasp.org/www-project-application-security-verification-standard/
+- **OWASP ASVS 5.0.0:** https://owasp.org/www-project-application-security-verification-standard/
+- **OWASP ASVS 5.0.0 release:** https://github.com/OWASP/ASVS/releases/tag/v5.0.0_release
 - **CWE Top 25 (2024):** https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html
 - **CWE Database:** https://cwe.mitre.org/
 - **OWASP Top 10 (2021):** https://owasp.org/www-project-top-ten/
