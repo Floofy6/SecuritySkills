@@ -4,9 +4,9 @@ description: >
   Guides digital forensic evidence collection following NIST SP 800-86 and
   RFC 3227 order of volatility. Auto-invoked when the user needs to collect
   forensic evidence, preserve chain of custody, capture volatile data, create
-  disk images, or handle cloud forensics. Produces an evidence collection plan
-  with volatility-prioritized acquisition steps, integrity verification, and
-  chain-of-custody documentation.
+  disk images, handle cloud forensics, or preserve network device forensic
+  visibility. Produces an evidence collection plan with volatility-prioritized
+  acquisition steps, integrity verification, and chain-of-custody documentation.
 tags: [incident-response, forensics, evidence]
 role: [soc-analyst, security-engineer]
 phase: [respond]
@@ -42,6 +42,7 @@ Invoke this skill when any of the following conditions are met:
 - **Disk imaging is required** -- A system must be forensically imaged before eradication or recovery actions alter the disk state.
 - **Chain of custody must be established** -- Evidence may be used in legal proceedings, regulatory investigations, insurance claims, or internal disciplinary actions requiring documented provenance.
 - **Cloud environment evidence collection** -- Forensic data must be captured from cloud infrastructure (AWS, Azure, GCP) where traditional disk imaging does not apply.
+- **Network device or appliance evidence is needed** -- Edge devices, routers, firewalls, VPN concentrators, network attached storage, or virtual appliances may require source-scoped log, volatile-state, configuration, and storage acquisition planning.
 - **Log preservation needed** -- Logs at risk of rotation, overwrite, or deletion must be preserved before they are lost.
 
 **Do not use when:** The task is incident classification and response coordination (use ir-playbook), containment strategy selection (use containment), or post-incident retrospective (use post-incident-review).
@@ -62,6 +63,7 @@ Before beginning evidence collection, gather or confirm:
 - [ ] **Cloud provider access** -- IAM permissions for snapshot creation, log export, and API access (if cloud environment).
 - [ ] **Time synchronization** -- NTP configuration of affected systems; UTC timestamps preferred.
 - [ ] **Encryption status** -- BitLocker, LUKS, FileVault, or cloud-managed encryption on affected volumes.
+- [ ] **Network device context** -- Device/appliance type, management plane, firmware/software version, remote logging status, NTP source, configuration backup/export method, vendor support requirements, and whether volatile/non-volatile collection is supported.
 
 ---
 
@@ -289,6 +291,18 @@ Preserve logs before rotation policies destroy them. Export and hash logs from e
 4. Store alongside disk and memory evidence in the case folder
 ```
 
+**Network device and appliance forensic visibility:**
+
+For edge devices, routers, firewalls, VPN concentrators, NAS, and virtual appliances, preserve both forensic evidence and the device observability state that determines whether later analysis is possible. Use the 2025 ASD/ACSC-NCSC digital forensics and protective monitoring guidance as a source-scoped reference for network devices and appliances, not as a replacement for the general NIST SP 800-86 / RFC 3227 collection process.
+
+| Evidence / Visibility Area | Collection Requirement | Scope Notes |
+|---|---|---|
+| Authentication and administrative access | Export successful/failed logons, source IP/host, method, session IDs, privilege changes, and technical support access events | Applies to management plane and vendor support channels |
+| Service and process activity | Preserve HTTP/HTTPS/CLI service logs, process creation, exit status, dynamic module loads, DNS queries, firmware/software update attempts, and configuration changes | Collect raw logs and document parser/format limitations |
+| Log integrity and time confidence | Record NTP source/status, UTC timestamp format, millisecond precision if available, remote logging status, log rollover window, and attempts to clear or rotate logs | Missing or local-only logging is an evidence gap, not "not applicable" |
+| Volatile device state | Collect supported running state: processes, memory maps, modules, handles, sockets, firewall/packet rules, mounted filesystems, ARP/CAM/DHCP tables, sessions, kernel modules, volatile filesystems, and crash/core dumps | Use authorized privileged interfaces; document security risk and collection impact |
+| Non-volatile storage | Preserve full storage collection capability, decryption/key requirements, firmware/hardware protections, and authentication/authorization controls for acquisition interfaces | Vendor support or prior configuration may be required |
+
 ### Step 6: Cloud Forensics
 
 Cloud environments require different acquisition techniques because direct hardware access is not available.
@@ -401,6 +415,11 @@ the order of collection, and any evidence that could not be obtained.]
 | Cloud Provider | Resource | Evidence Type | Collected | Notes |
 |---|---|---|---|---|
 | [AWS/Azure/GCP] | [Resource ID] | [Snapshot/Logs/Config] | [Yes/No] | [Notes] |
+
+### Network Device / Appliance Evidence (if applicable)
+| Device / Appliance | Evidence or Visibility Source | Collected | Time / Integrity Confidence | Scope Notes |
+|---|---|---|---|---|
+| [router/firewall/VPN/NAS/virtual appliance] | [auth logs/process state/config export/volatile state/storage] | [Yes/No/N/A] | [NTP status, timestamp format, hash, GUID/config digest] | [unsupported, vendor-assisted, local-only logging, retention gap, source-scoped ACSC guidance] |
 ```
 
 ---
@@ -436,6 +455,10 @@ RFC 3227 (February 2002, authored by Dominique Brezinski and Tom Killalea) provi
 - **Archiving** -- Store evidence securely with restricted access. Use write-once media or write-protected storage. Retain evidence according to legal and organizational requirements.
 
 RFC 3227 remains a foundational reference for digital evidence collection procedures, cited in ISO 27037 and numerous forensic certification curricula.
+
+### ASD/ACSC-NCSC -- Digital Forensics and Protective Monitoring for Network Devices and Appliances
+
+Published in February 2025, this guidance describes forensic visibility and protective monitoring expectations for producers of network devices and appliances. In this skill, use it only for network device/appliance logging, volatile-state, non-volatile storage, time synchronization, and observability requirements. Do not cite it as a general forensic acquisition standard for endpoints, disks, cloud exports, or legal chain-of-custody decisions; those remain governed by NIST SP 800-86, RFC 3227, organization policy, and legal authority.
 
 ---
 
@@ -484,6 +507,6 @@ This skill processes forensic artifacts, log files, memory dumps, and system con
 5. **SANS Digital Forensics and Incident Response** -- https://www.sans.org/digital-forensics-incident-response/
 6. **Volatility 3 Framework** -- https://github.com/volatilityfoundation/volatility3
 7. **The Sleuth Kit / Autopsy** -- https://www.sleuthkit.org/
-8. **ACSC Digital Forensics Guide** -- https://www.cyber.gov.au/resources-business-and-government/essential-cyber-security/publications/digital-forensics
+8. **ASD/ACSC-NCSC Digital Forensics and Protective Monitoring Specifications for Network Devices and Appliances** -- https://www.cyber.gov.au/business-government/protecting-devices-systems/hardening-systems-applications/network-hardening/securing-edge-devices/guidance-on-digital-forensics-and-protective-monitoring-specifications-for-producers-of-network-devices-and-appliances
 9. **SWGDE Best Practices for Computer Forensics** -- https://www.swgde.org/documents
 10. **AWS Security Incident Response Guide** -- https://docs.aws.amazon.com/whitepapers/latest/aws-security-incident-response-guide/
