@@ -13,7 +13,7 @@ phase: [operate]
 frameworks: [MITRE-ATT&CK-v16, Sigma, Palantir-ADS]
 difficulty: advanced
 time_estimate: "30-60min"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -164,6 +164,17 @@ fields:
 ```
 
 **Sigma rule field requirements:**
+
+Before accepting a Sigma rule as conforming, record which Sigma source was
+checked. The Sigma documentation has moved between the SigmaHQ site and GitHub
+wiki pages; a stale rule-creation URL can make a review look verified while the
+reviewer never checked the current rule syntax or repository conventions.
+
+| Source Evidence | What to Record | Review Handling |
+|-----------------|----------------|-----------------|
+| Sigma specification source | Current Sigma docs page or specification repository URL | Use for core fields, modifiers, condition syntax, and rule semantics |
+| SigmaHQ rule convention source | SigmaHQ wiki or rule-convention page | Use for repository contribution expectations such as `status`, `date`, `modified`, and style |
+| Reviewed date | Date the source was checked | Mark rule conformance **Not Evaluable** if the only source is stale or unreachable |
 
 | Field | Required | Description |
 |-------|----------|-------------|
@@ -521,4 +532,12 @@ This skill processes user-supplied content that may include log samples, detecti
 9. **Atomic Red Team** -- https://github.com/redcanaryco/atomic-red-team
 10. **MITRE Cyber Analytics Repository (CAR)** -- https://car.mitre.org/
 11. **Detection Engineering Maturity Model** -- Kyle Bailey, https://kyle-bailey.medium.com/detection-engineering-maturity-matrix-f4f3181a5cc7
-12. **Sigma Rule Creation Guide (SigmaHQ)** -- https://sigmahq.io/docs/guide/rules.html
+12. **Sigma Rules Documentation** -- https://sigmahq.io/docs/basics/rules.html
+13. **Sigma Rule Creation Guide (SigmaHQ Wiki)** -- https://github.com/SigmaHQ/sigma/wiki/Rule-Creation-Guide
+14. **SigmaHQ Rule Conventions** -- https://sigmahq.io/sigma-specification/sigmahq/sigmahq-rule-convention.html
+
+---
+
+## 10. Changelog
+
+- **1.0.1** -- Added Sigma source-currency evidence and replaced stale Sigma rule-creation reference with current official Sigma documentation.
