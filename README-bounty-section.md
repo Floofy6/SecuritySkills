@@ -43,19 +43,20 @@ Traditional SAST tools stop at detection. Skills go further — they verify and 
 
 ```
 skills/
-  injection/          # SQL injection, command injection, LDAP injection, etc.
-  xss/                # Cross-site scripting variants
-  auth/               # Authentication and authorization flaws
-  crypto/             # Cryptographic misuse
-  secrets/            # Hardcoded credentials, API keys, tokens
-  config/             # Security misconfigurations
-  dependency/         # Vulnerable dependency detection
-  ...
+  appsec/             # Application security review skills
+  ai-security/        # LLM, agent, and model supply-chain security skills
+  cloud/              # AWS, Azure, GCP, IaC, and container security skills
+  compliance/         # SOC 2, ISO 27001, PCI DSS, HIPAA, and NIST CSF skills
+  devsecops/          # Pipeline, secrets, SAST, and DAST skills
+  identity/           # IAM, access review, RBAC, zero trust, and PAM skills
+  incident-response/  # IR, containment, forensics, and post-incident skills
+  network/            # Firewall, segmentation, and DNS security skills
+  secops/             # Detection, SIEM, alert triage, and log-analysis skills
+  vuln-management/    # CVE, patch, SBOM, and scanner-tuning skills
 ```
 
 Each skill contains:
-- `skill.yaml` — Detection patterns, remediation logic, metadata
-- `README.md` — Human-readable explanation and examples
+- `SKILL.md` — YAML frontmatter plus human-readable detection, verification, and remediation guidance
 - `tests/vulnerable/` — Code that should trigger the skill
 - `tests/benign/` — Code that should NOT trigger (false positive checks)
 
@@ -75,7 +76,7 @@ No prior open-source contribution experience required. Start with a review ($25)
 
 ## License
 
-[License details here]
+[MIT](LICENSE)
 
 ## About UnitOne
 
