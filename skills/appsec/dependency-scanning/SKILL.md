@@ -12,7 +12,7 @@ phase: [build, deploy]
 frameworks: [SLSA-v1.0, CycloneDX, SPDX, CISA-KEV]
 difficulty: intermediate
 time_estimate: "15-30min"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -193,6 +193,12 @@ When performing a dependency scan, produce findings in the following structure:
 **Date**: [scan date]
 **Total Dependencies**: [direct] direct, [transitive] transitive
 
+### Authoritative Source Register
+
+| Source | URL | Source Type | Status | Reviewed Date | Supports Claim |
+|---|---|---|---|---|---|
+| EO 14028 | Federal Register / GovInfo URL | Official / Official PDF | 200 / stale / not checked | YYYY-MM-DD | SBOM provenance or compliance context |
+
 ### Vulnerability Findings
 
 | # | CVE | Package | Version | Fixed In | CVSS | EPSS | KEV | Priority |
@@ -227,7 +233,8 @@ When performing a dependency scan, produce findings in the following structure:
 5. **License audit**: Extract license declarations from lockfiles or registry metadata. Flag copyleft and unlicensed packages.
 6. **Typosquatting check**: Review dependency names for patterns described in the detection section.
 7. **Supply chain assessment**: Evaluate SLSA posture -- lockfile presence, pinned versions, provenance availability.
-8. **Report**: Produce the assessment using the output template above, with prioritized remediation recommendations.
+8. **Source evidence**: For regulatory or policy claims such as EO 14028, record the official source URL, source type, status, reviewed date, and supported claim before using it as compliance context.
+9. **Report**: Produce the assessment using the output template above, with prioritized remediation recommendations.
 
 ## Prompt Injection Safety Notice
 
@@ -250,4 +257,11 @@ This skill processes user-supplied content including package manifests, lockfile
 - [FIRST EPSS Model](https://www.first.org/epss/)
 - [NIST NVD](https://nvd.nist.gov/)
 - [OpenSSF Scorecard](https://securityscorecards.dev/)
-- [Executive Order 14028 - Improving the Nation's Cybersecurity](https://www.whitehouse.gov/briefing-room/presidential-actions/2021/05/12/executive-order-on-improving-the-nations-cybersecurity/)
+- [Executive Order 14028 - Federal Register](https://www.federalregister.gov/documents/2021/05/17/2021-10460/improving-the-nations-cybersecurity/)
+- [Executive Order 14028 - GovInfo official PDF](https://www.govinfo.gov/content/pkg/FR-2021-05-17/pdf/2021-10460.pdf)
+
+---
+
+## Changelog
+
+- **1.0.1** -- Refreshed EO 14028 references to official Federal Register and GovInfo sources and added source-status evidence fields for regulatory or policy claims.

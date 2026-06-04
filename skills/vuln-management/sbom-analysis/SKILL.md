@@ -13,7 +13,7 @@ phase: [build, operate]
 frameworks: [CycloneDX-1.5, SPDX-2.3, VEX-CSAF, NTIA-SBOM-Minimum-Elements]
 difficulty: intermediate
 time_estimate: "20-40min"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -49,7 +49,7 @@ Before starting, collect or confirm:
 - [ ] **VEX document(s):** Associated VEX statements, if available (CSAF 2.0 format, CycloneDX VEX, or OpenVEX)
 - [ ] **Software identity:** Name, version, and vendor of the software the SBOM describes
 - [ ] **Intended use context:** Is this SBOM for procurement evaluation, compliance audit, incident response, or continuous monitoring?
-- [ ] **Compliance requirements:** Applicable mandates (EO 14028 for US federal suppliers, EU Cyber Resilience Act, FDA premarket guidance for medical devices)
+- [ ] **Compliance requirements:** Applicable mandates (EO 14028 for US federal suppliers, EU Cyber Resilience Act, FDA premarket guidance for medical devices), with official source URL, source status, and reviewed date recorded for each mandate used in the report.
 - [ ] **License policy:** Organization's approved/prohibited license list, if applicable
 - [ ] **Known vulnerability data:** CVE data sources to cross-reference (NVD, OSV, GitHub Advisory Database)
 
@@ -263,6 +263,13 @@ Produce a structured report with these exact sections:
 **Frameworks:** CycloneDX 1.5, SPDX 2.3, VEX (CSAF), NTIA Minimum Elements
 **Reviewer:** AI-assisted (human review required for license conflicts and risk decisions)
 
+### Authoritative Source Register
+
+| Source | URL | Source Type | Status | Reviewed Date | Supports Claim | Confidence |
+|---|---|---|---|---|---|---|
+| NTIA SBOM Minimum Elements | https://www.ntia.gov/sites/default/files/publications/sbom_minimum_elements_report_0.pdf | Official report | 200 / stale / not checked | YYYY-MM-DD | Seven minimum SBOM elements | Strong / Partial / Not Evaluable |
+| EO 14028 | Federal Register / GovInfo URL | Official / Official PDF | 200 / stale / not checked | YYYY-MM-DD | SBOM policy/compliance context | Strong / Partial / Not Evaluable |
+
 ### Executive Summary
 [3-5 sentences. State the software being analyzed, SBOM format, NTIA completeness
 rating, number of components, key risk findings (CVEs in dependencies, license
@@ -334,6 +341,8 @@ conflicts), and overall classification.]
 
 ### References
 - NTIA SBOM Minimum Elements: https://www.ntia.gov/sites/default/files/publications/sbom_minimum_elements_report_0.pdf
+- EO 14028 Federal Register: https://www.federalregister.gov/documents/2021/05/17/2021-10460/improving-the-nations-cybersecurity
+- EO 14028 GovInfo official PDF: https://www.govinfo.gov/content/pkg/FR-2021-05-17/pdf/2021-10460.pdf
 - CycloneDX 1.5 Specification: https://cyclonedx.org/docs/1.5/
 - SPDX 2.3 Specification: https://spdx.github.io/spdx-spec/v2.3/
 - VEX (CSAF): https://docs.oasis-open.org/csaf/csaf/v2.0/csaf-v2.0.html
@@ -365,7 +374,8 @@ Vulnerability Exploitability eXchange (VEX) is a form of security advisory that 
 ### NTIA SBOM Minimum Elements
 Published by NTIA in July 2021 as part of Executive Order 14028 implementation. Defines the baseline data fields required for an SBOM to be considered useful. The seven elements are: Supplier Name, Component Name, Version, Unique Identifier, Dependency Relationship, Author of SBOM Data, and Timestamp.
 - Report: https://www.ntia.gov/sites/default/files/publications/sbom_minimum_elements_report_0.pdf
-- EO 14028: https://www.whitehouse.gov/briefing-room/presidential-actions/2021/05/12/executive-order-on-improving-the-nations-cybersecurity/
+- EO 14028 Federal Register: https://www.federalregister.gov/documents/2021/05/17/2021-10460/improving-the-nations-cybersecurity
+- EO 14028 GovInfo official PDF: https://www.govinfo.gov/content/pkg/FR-2021-05-17/pdf/2021-10460.pdf
 
 ---
 
@@ -380,6 +390,8 @@ Published by NTIA in July 2021 as part of Executive Order 14028 implementation. 
 4. **Overlooking license implications in SaaS deployments.** AGPL-3.0 triggers copyleft obligations for network use (SaaS), unlike GPL which only triggers on distribution. Organizations running AGPL-licensed components in SaaS products may have unrecognized compliance obligations. Always flag AGPL components regardless of distribution model.
 
 5. **Failing to track SBOM freshness.** An SBOM is a point-in-time snapshot. Software composition changes with every dependency update, build, or deployment. SBOMs older than the most recent build/release are potentially inaccurate. Check the SBOM timestamp against the software's actual release date and flag stale SBOMs.
+
+6. **Using stale legal or policy URLs as compliance proof.** A broken or archival EO 14028 link should not support an SBOM compliance claim by itself. Record the current official Federal Register or GovInfo source, source status, reviewed date, and the specific claim it supports.
 
 ---
 
@@ -404,7 +416,14 @@ Published by NTIA in July 2021 as part of Executive Order 14028 implementation. 
 - CSAF 2.0 (OASIS): https://docs.oasis-open.org/csaf/csaf/v2.0/csaf-v2.0.html
 - CISA VEX Minimum Requirements: https://www.cisa.gov/sites/default/files/2023-04/minimum-requirements-for-vex-508c.pdf
 - OpenVEX Specification: https://github.com/openvex/spec
-- Executive Order 14028: https://www.whitehouse.gov/briefing-room/presidential-actions/2021/05/12/executive-order-on-improving-the-nations-cybersecurity/
+- Executive Order 14028 Federal Register: https://www.federalregister.gov/documents/2021/05/17/2021-10460/improving-the-nations-cybersecurity
+- Executive Order 14028 GovInfo official PDF: https://www.govinfo.gov/content/pkg/FR-2021-05-17/pdf/2021-10460.pdf
 - EU Cyber Resilience Act: https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act
 - OSV (Open Source Vulnerability Database): https://osv.dev/
 - GitHub Advisory Database: https://github.com/advisories
+
+---
+
+## Changelog
+
+- **1.0.1** -- Refreshed EO 14028 references to official Federal Register and GovInfo sources and added authoritative source-register fields for compliance/source claims.
