@@ -6,7 +6,7 @@
 meta:
   version: "1.0.0"
   last_updated: "2026-03-05"
-  skill_count: 45
+  skill_count: 46
   role_count: 5
 
 tag_vocabulary:
@@ -197,6 +197,18 @@ skills:
     difficulty: intermediate
     time_estimate: "30-60min"
     file: skills/cloud/container-security/SKILL.md
+    compatible_tools: [claude-code, gemini-cli, cursor, codex-cli, openclaw, kiro]
+
+  - id: database-security
+    name: "Relational Database Security Posture Review"
+    tags: [cloud, database, postgres, mysql, sql-server]
+    role: [security-engineer, cloud-security-engineer, devsecops]
+    phase: [deploy, operate]
+    activity: [audit, review]
+    frameworks: [CIS-Controls-v8, CIS-Microsoft-SQL-Server, PostgreSQL, MySQL, SQL-Server]
+    difficulty: intermediate
+    time_estimate: "60-120min"
+    file: skills/cloud/database-security/SKILL.md
     compatible_tools: [claude-code, gemini-cli, cursor, codex-cli, openclaw, kiro]
 
   # -- Vulnerability Management ---------------------------------------------
