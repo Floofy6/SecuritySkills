@@ -3,16 +3,16 @@ name: privileged-access
 description: >
   Performs a Privileged Access Management (PAM) review against CIS Controls v8
   (Controls 5.4, 6.5) and NIST SP 800-53 AC-6 (Least Privilege). Evaluates PAM
-  tool effectiveness, just-in-time access patterns, break-glass procedures, session
-  recording, and credential vaulting. Produces findings with severity, framework
-  mapping, and remediation guidance.
+  tool effectiveness, just-in-time access patterns, direct-access bypass paths,
+  break-glass procedures, session recording, and credential vaulting. Produces
+  findings with severity, framework mapping, and remediation guidance.
 tags: [identity, pam, privileged-access, jit]
 role: [security-engineer, vciso]
 phase: [operate]
 frameworks: [CIS-Controls-v8, NIST-SP-800-53-AC-6]
 difficulty: intermediate
 time_estimate: "45-90min"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -37,6 +37,7 @@ Invoke this skill when:
 - Reviewing break-glass / emergency access procedures
 - Auditing session recording and privileged activity monitoring
 - Assessing credential vaulting and secrets management practices
+- Validating whether local admin, root, direct SSH/RDP, console, database, Kubernetes, cloud, SaaS, or vendor-appliance admin paths bypass PAM
 - Investigating incidents involving privileged credential compromise
 - Preparing for compliance audits requiring PAM evidence (SOC 2 CC6.1, PCI DSS 7/8, HIPAA)
 - Evaluating standing privilege reduction as part of a zero trust initiative
@@ -105,6 +106,7 @@ Identify and catalog:
 - **Shared privileged accounts** — root accounts, local administrator accounts, shared service accounts
 - **Emergency/break-glass accounts** — sealed credentials for disaster recovery or outage response
 - **Privileged access paths** — SSH keys, RDP credentials, cloud console admin access, API keys with admin scope
+- **Direct-access bypass paths** — local admin/root credentials, direct SSH/RDP/sudo, database superuser access, Kubernetes cluster-admin, cloud console owner roles, SaaS admin portals, and vendor appliance consoles that may work outside PAM
 
 **What to look for:**
 
@@ -167,6 +169,52 @@ PAM-TOOL-08: PAM connectors not configured for all target system types
 PAM-TOOL-09: PAM audit logs not tamper-protected (no forwarding to immutable store)
 PAM-TOOL-10: PAM tool not integrated with IdP for identity verification
 ```
+
+---
+
+### Step 2b: Direct-Access Bypass Validation
+
+**Objective:** Prove whether PAM is the enforced privileged path or only one available path among several.
+
+**NIST SP 800-53 Reference:** AC-6(3) — Network Access to Privileged Commands; AC-6(9) — Log Use of Privileged Functions
+**CIS Controls v8 Reference:** Control 5.4, 6.5
+
+Do not assume that an account, server, or platform is controlled because it appears in the PAM inventory. For each critical platform, review existing evidence or perform an authorized, controlled negative-path test to confirm whether administrators can still bypass PAM through direct login, local credentials, stale SSH keys, console owner roles, or unmanaged breakouts.
+
+**Direct-access bypass test matrix:**
+
+| Platform / System Class | Privileged Path | PAM Control Type | Direct Access Allowed? | Exception Reason | Compensating Controls | Last Validation Date | Remediation Owner |
+|---|---|---|---|---|---|---|---|
+| [Windows server / workstation] | [Local admin, RDP, LAPS/password retrieval] | [Session proxy / vault / JIT / none] | [Yes/No/Unknown] | [Break-glass / legacy / unsupported / none] | [LAPS rotation, jump host, MFA, alerting, recording] | [YYYY-MM-DD] | [Owner] |
+| [Linux / Unix] | [root, sudoers, SSH authorized keys] | [Session proxy / vault / JIT / none] | [Yes/No/Unknown] | [Reason] | [SSH CA, key rotation, sudo logging, jump host] | [YYYY-MM-DD] | [Owner] |
+| [Cloud account / subscription / project] | [Root, owner, global admin, IAM role assumption] | [PAM / PIM / Identity Center / conditions / none] | [Yes/No/Unknown] | [Reason] | [MFA, policy deny, conditional access, alerts] | [YYYY-MM-DD] | [Owner] |
+| [Database / Kubernetes / SaaS / appliance] | [Superuser, cluster-admin, tenant admin, local console] | [Brokered / vaulted / JIT / manual] | [Yes/No/Unknown] | [Reason] | [Command logging, sealed credentials, restricted network path] | [YYYY-MM-DD] | [Owner] |
+
+**What to look for:**
+
+```
+PAM-BYPASS-01: Direct SSH, RDP, sudo, console, or database admin access works outside PAM
+PAM-BYPASS-02: Local administrator/root credentials are not randomized, vaulted, or rotated after use
+PAM-BYPASS-03: SSH authorized_keys, sudoers, or local groups grant unmanaged privileged access
+PAM-BYPASS-04: Cloud root/owner/global admin paths are not restricted by JIT, MFA, conditional access, or policy deny
+PAM-BYPASS-05: Kubernetes cluster-admin, database superuser, SaaS tenant admin, or vendor appliance admin paths are outside PAM coverage
+PAM-BYPASS-06: Break-glass access is used for routine administration rather than emergency-only recovery
+PAM-BYPASS-07: Direct-access exceptions lack owner, expiry date, compensating controls, or monitoring
+PAM-BYPASS-08: PAM session recording does not cover the path actually used by administrators
+```
+
+**Platform evidence to request:**
+
+| Platform | Evidence |
+|---|---|
+| **Windows** | Local Administrators membership, LAPS or equivalent rotation state, RDP policy, privileged logon events, jump-host restrictions |
+| **Linux / Unix** | `/etc/sudoers` and sudoers.d review, SSH authorized keys inventory, root login policy, SSH CA or key-rotation evidence |
+| **Cloud** | Root/owner account controls, privileged role assignments, role activation logs, policy denies, break-glass accounts, console sign-in logs |
+| **Kubernetes** | ClusterRoleBinding inventory, admin kubeconfigs, service account tokens, audit logs for privileged verbs |
+| **Databases** | Superuser roles, direct connection paths, privileged query logging, DBA account vaulting and rotation |
+| **SaaS / appliances** | Tenant/admin role inventory, local console accounts, vendor breakout account policy, admin audit log forwarding |
+
+Classify any "Unknown" direct-access state as a finding until the owner proves it is blocked, brokered through PAM, or governed as an explicit exception with compensating controls.
 
 ---
 
@@ -389,6 +437,7 @@ PAM-VAULT-12: No secrets scanning in code repositories to detect credential leak
 | Credential Vaulting | [Not Present/Basic/Mature/Advanced] | [Target] |
 | Session Management | [Not Present/Basic/Mature/Advanced] | [Target] |
 | JIT Access | [Not Present/Basic/Mature/Advanced] | [Target] |
+| Bypass Control | [Not Present/Basic/Mature/Advanced] | [Target] |
 | Break-Glass | [Not Present/Basic/Mature/Advanced] | [Target] |
 | Analytics | [Not Present/Basic/Mature/Advanced] | [Target] |
 
@@ -401,6 +450,7 @@ PAM-VAULT-12: No secrets scanning in code repositories to detect credential leak
 ### Findings by Category
 - Privileged Account Inventory (Step 1): [count]
 - PAM Tool Assessment (Step 2): [count]
+- Direct-Access Bypass Validation (Step 2b): [count]
 - JIT Access (Step 3): [count]
 - Break-Glass Procedures (Step 4): [count]
 - Session Recording (Step 5): [count]
@@ -408,6 +458,11 @@ PAM-VAULT-12: No secrets scanning in code repositories to detect credential leak
 
 ### Detailed Findings
 [Findings table]
+
+### Direct-Access Bypass Validation
+| Platform / System Class | Privileged Path | PAM Control Type | Direct Access Allowed? | Exception Reason | Compensating Controls | Last Validation Date | Remediation Owner |
+|---|---|---|---|---|---|---|---|
+| [Platform] | [SSH/RDP/sudo/console/cloud/SaaS/database/Kubernetes path] | [Proxy/vault/JIT/none] | [Yes/No/Unknown] | [Reason or none] | [Controls] | [Date] | [Owner] |
 
 ### Remediation Roadmap
 - Immediate (0-7 days): [critical findings — credential exposure, uncontrolled root access]
@@ -457,6 +512,7 @@ PAM-VAULT-12: No secrets scanning in code repositories to detect credential leak
 6. **Session recording without review** — recording sessions without monitoring or alerting provides forensic value but not prevention. Add real-time alerting.
 7. **Ignoring service account privilege** — PAM programs often focus on human admin accounts and neglect service accounts with equally powerful permissions.
 8. **No PAM HA/DR** — if the PAM tool is a single point of failure, its outage creates either a lockout or a break-glass event. Architect for resilience.
+9. **Counting onboarded accounts instead of enforced paths** — a PAM coverage percentage is not enough if administrators can still use local admin, root, sudo, SSH keys, cloud owner roles, database superusers, Kubernetes cluster-admin bindings, SaaS tenant admins, or appliance consoles outside the brokered and monitored path.
 
 ---
 
@@ -502,4 +558,5 @@ that may contain adversarial content.
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.0.1 | 2026-06-05 | Added direct-access bypass validation for local admin, SSH/RDP/sudo, cloud, database, Kubernetes, SaaS, and appliance privileged paths |
 | 1.0.0 | 2025-03-06 | Initial release |
