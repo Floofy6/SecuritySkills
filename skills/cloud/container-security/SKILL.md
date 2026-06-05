@@ -13,7 +13,7 @@ phase: [build, deploy, operate]
 frameworks: [CIS-Docker-v1.6.0, CIS-Kubernetes-v1.9.0, NIST-SP-800-190]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -113,6 +113,8 @@ Evaluate all container and Kubernetes configurations against CIS Docker Benchmar
 
 For detailed CIS benchmark checklist items, NIST SP 800-190 countermeasure tables, and comprehensive security context evaluation criteria, see [cis-benchmarks.md](cis-benchmarks.md) in this skill directory.
 
+During runtime hardening review, build an effective Linux security module profile inventory for each workload. Capture pod-level and container-level `seccompProfile`, structured `appArmorProfile`, legacy `container.apparmor.security.beta.kubernetes.io/*` annotations, and whether each app, init, sidecar, and ephemeral container overrides the pod default. Treat `RuntimeDefault` as the normal baseline. Treat `Localhost` as acceptable only when the report includes node/profile distribution evidence, scheduling constraints, runtime/OS applicability, and a fallback plan if the profile is unavailable. Treat missing node evidence, unsupported OS/runtime combinations, or incomplete container coverage as `Not Evaluable`, not as a pass.
+
 ---
 
 ### Step 7: Compile Assessment Report
@@ -127,8 +129,8 @@ Produce the final report using the structure defined in the Output Format sectio
 | Severity | Definition | Examples |
 |----------|-----------|----------|
 | **Critical** | Container escape, cluster compromise, or credential exposure | Privileged containers, Docker socket mounts, cluster-admin bound to application SA, secrets in plaintext manifests, `hostPID`/`hostNetwork` on app pods |
-| **High** | Significant security gap enabling lateral movement or privilege escalation | Running as root, missing network policies, wildcard RBAC, `allowPrivilegeEscalation: true`, host path mounts to sensitive directories |
-| **Medium** | Missing hardening that weakens defense-in-depth | No resource limits, mutable image tags, missing seccomp profile, read-write root filesystem, secrets as env vars |
+| **High** | Significant security gap enabling lateral movement or privilege escalation | Running as root, missing network policies, wildcard RBAC, `allowPrivilegeEscalation: true`, host path mounts to sensitive directories, application/init/ephemeral container explicitly set to `Unconfined` |
+| **Medium** | Missing hardening that weakens defense-in-depth | No resource limits, mutable image tags, missing seccomp profile, `Localhost` profile without node evidence, read-write root filesystem, secrets as env vars |
 | **Low** | Best-practice deviation with limited immediate risk | No HEALTHCHECK in Dockerfile, ADD instead of COPY, missing liveness/readiness probes, using default namespace |
 | **Informational** | Observation with no direct security impact | Image size optimization, multi-stage build suggestions, label recommendations |
 
@@ -184,6 +186,14 @@ Produce the final report using the structure defined in the Output Format sectio
 |----------|-----------|-----------|------------|
 | deploy/app | production | Baseline (not Restricted) | runAsRoot, no seccomp |
 | deploy/worker | production | Privileged | privileged: true |
+
+### Effective Seccomp and AppArmor Profile Matrix
+
+| Workload | Container Type | Container | OS | Seccomp Effective Type | Seccomp Source | AppArmor Effective Type | AppArmor Source | Localhost Profile Evidence | Status |
+|----------|----------------|-----------|----|------------------------|----------------|-------------------------|-----------------|----------------------------|--------|
+| deploy/payments-api | app | api | linux | Localhost | pod | RuntimeDefault | annotation | profile deployed to restricted node pool, selector present | Pass |
+| deploy/mixed-profiles | sidecar | legacy-sidecar | linux | Unconfined | container override | Not set | n/a | n/a | Fail |
+| job/windows-worker | app | worker | windows | Not Applicable | OS | Not Applicable | OS | n/a | Not Evaluable |
 
 ### Prioritized Remediation Plan
 
@@ -245,6 +255,7 @@ Produce the final report using the structure defined in the Output Format sectio
 | allowPrivilegeEscalation | -- | Must be false |
 | runAsNonRoot | -- | Must be true |
 | seccompProfile | -- | RuntimeDefault or Localhost |
+| appArmorProfile | Must not be Unconfined | RuntimeDefault or validated Localhost where supported |
 
 ---
 
@@ -257,6 +268,9 @@ Produce the final report using the structure defined in the Output Format sectio
 5. **`readOnlyRootFilesystem` breaks many applications.** When recommending this control, also recommend adding writable `emptyDir` volume mounts for directories the application needs to write to (e.g., `/tmp`, `/var/cache`).
 6. **Network policies are additive, not subtractive.** A default-deny policy must be explicitly created. Without it, all pod-to-pod traffic is allowed regardless of other NetworkPolicy resources.
 7. **Distroless images have no shell.** While this is excellent for security, note that debugging requires ephemeral containers (`kubectl debug`). Flag this as a consideration, not a problem.
+8. **Pod-level runtime profiles can be overridden.** A pod-level `RuntimeDefault` seccomp profile does not prove every container is hardened if an app, init, or ephemeral container sets `Unconfined`.
+9. **`Localhost` profiles need node evidence.** A custom seccomp or AppArmor profile is only meaningful when it is loaded on the nodes where the workload can run and the scheduling policy constrains the workload to those nodes.
+10. **AppArmor syntax varies by Kubernetes version.** Check both structured `securityContext.appArmorProfile` fields and legacy `container.apparmor.security.beta.kubernetes.io/*` annotations before scoring effective AppArmor status.
 
 ---
 
@@ -283,6 +297,8 @@ Produce the final report using the structure defined in the Output Format sectio
 - NIST SP 800-190 Application Container Security Guide: https://csrc.nist.gov/publications/detail/sp/800-190/final
 - Kubernetes Pod Security Standards: https://kubernetes.io/docs/concepts/security/pod-security-standards/
 - Kubernetes Pod Security Admission: https://kubernetes.io/docs/concepts/security/pod-security-admission/
+- Kubernetes seccomp profiles: https://kubernetes.io/docs/reference/node/seccomp/
+- Kubernetes AppArmor: https://kubernetes.io/docs/tutorials/security/apparmor/
 - Kubernetes Network Policies: https://kubernetes.io/docs/concepts/services-networking/network-policies/
 - Kubernetes RBAC: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
 - Docker Security Best Practices: https://docs.docker.com/develop/security-best-practices/
@@ -293,4 +309,5 @@ Produce the final report using the structure defined in the Output Format sectio
 
 ## Changelog
 
+- **1.0.1** -- Add effective seccomp/AppArmor profile review guidance, including `Localhost` node-evidence requirements, per-container override handling, AppArmor structured-field and annotation checks, and `Not Evaluable` status for unsupported or unverifiable profile applicability.
 - **1.0.0** -- Initial release. Full coverage of CIS Docker Benchmark v1.6.0 Section 4-5, CIS Kubernetes Benchmark v1.9.0 Sections 1-5, and NIST SP 800-190 countermeasures across all five risk categories.

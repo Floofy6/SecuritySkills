@@ -406,6 +406,153 @@ ports:
     hostPort: 8080  # FAIL: binds directly to host
 ```
 
+### Pod Security Runtime Profiles -- seccomp and AppArmor Applicability
+
+Do not score runtime hardening from a single pod-level field. Build an effective profile matrix for every app container, sidecar, init container, and ephemeral/debug container.
+
+**Discovery patterns:**
+
+```
+seccompProfile:
+localhostProfile:
+appArmorProfile:
+container.apparmor.security.beta.kubernetes.io/
+initContainers:
+ephemeralContainers:
+nodeSelector:
+affinity:
+runtimeClassName:
+kubernetes.io/os:
+```
+
+**Effective profile precedence:**
+
+1. Container-level `securityContext.seccompProfile` overrides pod-level `spec.securityContext.seccompProfile`.
+2. Structured `securityContext.appArmorProfile` should be captured when present.
+3. Legacy AppArmor annotations such as `container.apparmor.security.beta.kubernetes.io/<container-name>` apply to the named container and must be mapped to the same effective-profile matrix.
+4. Pod-level runtime defaults do not cover a container that explicitly declares `Unconfined`.
+5. Linux and Windows workloads have different seccomp/AppArmor applicability; record OS before assigning pass/fail status.
+
+**Effective profile matrix fields:**
+
+| Field | Required Evidence |
+|-------|-------------------|
+| Workload and namespace | Deployment/StatefulSet/DaemonSet/Job/CronJob and namespace |
+| Container scope | app container, sidecar, init container, or ephemeral container |
+| OS and runtime class | `kubernetes.io/os`, `runtimeClassName`, node pool, or cluster evidence |
+| Seccomp effective type | `RuntimeDefault`, `Localhost`, `Unconfined`, missing, or Not Applicable |
+| Seccomp source level | pod default, container override, policy mutation, or unknown |
+| Seccomp localhost profile | profile path/name and kubelet seccomp-root distribution evidence |
+| AppArmor effective type | `RuntimeDefault`, `Localhost`, `Unconfined`, missing, or Not Applicable |
+| AppArmor source level | structured field, legacy annotation, policy mutation, or unknown |
+| AppArmor localhost profile | profile name/path and node distribution evidence |
+| Scheduling constraint | node selector, affinity, taint/toleration, runtime class, or admission policy tying workload to prepared nodes |
+| Evidence status | Pass, Fail, Partial, Not Applicable, or Not Evaluable |
+
+**Safe `RuntimeDefault` baseline:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runtime-default-worker
+spec:
+  template:
+    metadata:
+      labels:
+        app: runtime-default-worker
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: ghcr.io/example/worker@sha256:1111111111111111111111111111111111111111111111111111111111111111
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+```
+
+**Acceptable `Localhost` profile only with node evidence:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-profile-worker
+spec:
+  template:
+    spec:
+      nodeSelector:
+        security.example.com/seccomp-profile-worker: "true"
+      securityContext:
+        seccompProfile:
+          type: Localhost
+          localhostProfile: profiles/seccomp/worker.json
+      containers:
+        - name: worker
+          image: ghcr.io/example/worker@sha256:2222222222222222222222222222222222222222222222222222222222222222
+          securityContext:
+            appArmorProfile:
+              type: Localhost
+              localhostProfile: profiles/apparmor/worker-deny-write
+```
+
+Evidence required before this is a pass:
+
+- Profile file or profile name exists on every schedulable Linux node for the workload.
+- Profile rollout method is documented, such as image bake, DaemonSet distribution, node bootstrap, or managed node-pool configuration.
+- Workload scheduling is constrained to nodes with the profile.
+- Admission or policy checks prevent accidental scheduling where the profile is absent.
+- Runtime and Kubernetes version support the selected seccomp/AppArmor field.
+
+**Failing container-level override despite pod default:**
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mixed-profiles
+spec:
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: ghcr.io/example/app@sha256:3333333333333333333333333333333333333333333333333333333333333333
+    - name: legacy-sidecar
+      image: ghcr.io/example/legacy@sha256:4444444444444444444444444444444444444444444444444444444444444444
+      securityContext:
+        seccompProfile:
+          type: Unconfined
+```
+
+The sidecar is a finding even though the pod default is `RuntimeDefault`.
+
+**Legacy AppArmor annotation mapping:**
+
+```yaml
+metadata:
+  annotations:
+    container.apparmor.security.beta.kubernetes.io/uploader: runtime/default
+spec:
+  containers:
+    - name: uploader
+      securityContext:
+        allowPrivilegeEscalation: false
+```
+
+Map the annotation to the `uploader` container in the effective profile matrix. If both structured fields and annotations are present, report the conflict or precedence assumption instead of silently choosing one.
+
+**Severity guidance:**
+
+- **High:** Application, sidecar, init, or ephemeral container explicitly sets seccomp/AppArmor to `Unconfined`, especially with elevated capabilities, host namespaces, privileged mode, or writable host mounts.
+- **Medium:** `Localhost` profile is declared but profile distribution, node support, or scheduling constraint evidence is missing.
+- **Low/Informational:** Workload uses `RuntimeDefault` and no AppArmor profile is set, but the platform does not enforce AppArmor or the control is documented as out of scope.
+- **Not Evaluable:** OS/runtime/Kubernetes version, node evidence, profile rollout path, or effective container mapping is unavailable.
+
 ### CIS 5.3 -- Network Policies and CNI
 
 #### CIS 5.3.1 -- Ensure that the CNI in use supports NetworkPolicies
@@ -614,7 +761,7 @@ Evaluate container runtime configurations against NIST SP 800-190 countermeasure
 | **CM-12:** Use read-only root filesystem | `readOnlyRootFilesystem: true` |
 | **CM-13:** Drop all capabilities | `capabilities.drop: ["ALL"]` |
 | **CM-14:** Set resource limits | CPU and memory limits set on all containers |
-| **CM-15:** Use seccomp profiles | `seccompProfile.type: RuntimeDefault` or custom |
+| **CM-15:** Use seccomp profiles | `seccompProfile.type: RuntimeDefault` or validated `Localhost`; flag `Unconfined` overrides |
 
 **Resource limits check:**
 
@@ -644,6 +791,17 @@ securityContext:
     type: RuntimeDefault
 ```
 
+**Validated Localhost seccomp profile:**
+
+```yaml
+securityContext:
+  seccompProfile:
+    type: Localhost
+    localhostProfile: profiles/seccomp/payments-api.json
+```
+
+Only score this as pass when the report includes profile distribution, node scheduling, and OS/runtime applicability evidence. Otherwise mark it `Not Evaluable` or `Medium` depending on risk.
+
 ---
 
 ## Comprehensive Security Context Evaluation
@@ -670,6 +828,8 @@ spec:
           drop: ["ALL"]
         seccompProfile:
           type: RuntimeDefault
+        appArmorProfile:
+          type: RuntimeDefault
       resources:
         limits:
           memory: "256Mi"
@@ -689,4 +849,13 @@ spec:
 - `hostPort` in container ports
 - Capabilities beyond the allowed set (only `NET_BIND_SERVICE` is permitted)
 - `procMount` other than `Default`
-- `appArmorProfile` of `unconfined`
+- `seccompProfile.type: Unconfined` at pod, app container, init container, sidecar, or ephemeral container scope
+- `appArmorProfile.type: Unconfined` at app container, init container, sidecar, or ephemeral container scope
+- Legacy AppArmor annotations set to `unconfined`
+
+**Runtime profile validation notes:**
+
+- `RuntimeDefault` at pod scope is inherited only by containers that do not declare a container-level seccomp profile.
+- `Localhost` seccomp/AppArmor profiles require node-local profile availability evidence and scheduling constraints before they can be counted as hardened.
+- `initContainers` and `ephemeralContainers` must be included in the same effective-profile matrix as regular app containers.
+- Windows pods should record seccomp/AppArmor as Not Applicable, not Fail, unless the manifest is intended for Linux nodes.
