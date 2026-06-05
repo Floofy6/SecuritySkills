@@ -13,7 +13,7 @@ phase: [build, operate]
 frameworks: [OWASP-Secrets-Management, NIST-SP-800-57-Part1-Rev5]
 difficulty: intermediate
 time_estimate: "20-40min"
-version: "1.0.1"
+version: "1.0.2"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -173,7 +173,44 @@ Before flagging a detected string as a hardcoded secret, apply these verificatio
    - Infrastructure misconfigurations unrelated to secrets (e.g., public S3 buckets, debug mode, public database endpoints) — these belong to other skills
 5. **Scope to the skill's domain.** Only report findings where a secret (credential, key, token, certificate) is actually present in the file. General security misconfigurations, missing best practices, and architectural gaps should be noted in the Prioritized Remediation Plan section, not as numbered findings.
 
-#### 2.3 Detection Tool Configuration Review
+#### 2.3 Honeytoken and Decoy Credential Evidence
+
+Treat honeytokens and decoy credentials as a separate triage category from both production secrets and placeholders. A honeytoken may intentionally match a high-confidence secret pattern, use a known provider prefix, and have high entropy. Do not downgrade it as benign, or escalate it as a leaked production credential, until the report records decoy evidence.
+
+**Honeytoken evidence gate:**
+
+| Field | Required Evidence |
+|-------|-------------------|
+| Detector match | Redacted token type, file path, and line reference; never include the full value |
+| Decoy status | Confirmed honeytoken, suspected decoy, placeholder/example, real credential, or unknown |
+| Owner | Team or person responsible for decoy lifecycle |
+| Backing access | Synthetic value, inert provider account, restricted sandbox, production access, or unknown |
+| Deployment purpose | Code-leak detection, artifact leak detection, CI/workstation tripwire, documentation canary, or unknown |
+| Alert route | SIEM rule, paging channel, email, ticket queue, and current responder |
+| Last trigger or drill | Timestamp, expected alert received, and response ticket or fire-drill evidence |
+| Exposure context | Private repository, public repository, package artifact, container image, CI log, support bundle, or unknown |
+| Response status | No action needed, investigate exposure, rotate or reissue decoy, remove stale decoy, or rotate real credential |
+| Confidence | Strong, partial, docs-only, or Not Evaluable |
+
+**Classification guidance:**
+
+- Confirmed managed honeytoken with no production backing access, current owner, working alert route, and recent drill evidence: **Informational** observation or **Pass**.
+- Honeytoken-shaped value with unknown owner, missing alert route, stale/no drill evidence, or unclear backing access: **Medium** until evidence is collected.
+- Confirmed honeytoken unexpectedly exposed in a public repository, package artifact, container image, CI log, or external paste: **High** until the exposure path and trigger response are investigated.
+- Token-shaped value that cannot be confirmed as a decoy and could grant access to real systems: keep normal secret-leak severity; production credential exposure remains **Critical**.
+- Placeholder/example value such as `AKIAEXAMPLE...`, `dummy`, or `replace-me`: filter as placeholder noise, not as a honeytoken.
+
+**Not Evaluable reasons:**
+
+- Decoy owner is missing or no longer reachable.
+- Backing access or blast radius is unknown.
+- Alert route cannot be verified.
+- No trigger test or fire-drill evidence is available.
+- Deployment purpose or expected exposure location is undocumented.
+
+**Reporting rule:** Redact decoy values exactly like real secrets. A honeytoken is an active detection control; printing it in a report can create false alerts, teach attackers to avoid the token, or reveal monitoring design.
+
+#### 2.4 Detection Tool Configuration Review
 
 Verify that at least one secret detection tool is configured and integrated:
 
@@ -358,8 +395,9 @@ spec:
 |----------|-----------|
 | **Critical** | Committed secrets in current codebase or git history (unrotated); no secret detection tooling; .env with production credentials committed. |
 | **High** | No centralized secrets manager; no rotation automation; long-lived static credentials for agents; secrets in CI logs; no git history scanning; audit logging disabled on vault. |
-| **Medium** | Detection in CI only (no pre-commit); manual rotation process; excessive detection allowlists; token TTL mismatch; rotation not monitored; plaintext secrets in environment variables (vs. vault injection). |
+| **Medium** | Detection in CI only (no pre-commit); manual rotation process; excessive detection allowlists; token TTL mismatch; rotation not monitored; plaintext secrets in environment variables (vs. vault injection); suspected honeytoken with missing owner, alert route, backing-access, or drill evidence. |
 | **Low** | Missing secret type documentation; secret naming convention inconsistencies; development-only secrets in non-.gitignored example files. |
+| **Informational** | Confirmed managed honeytoken or decoy credential with no production backing access, current owner, working alert route, and recent drill evidence. |
 
 ---
 
@@ -389,10 +427,17 @@ spec:
 | API key (Stripe) | AWS SM | 90 days | Yes | 2024-01-15 |
 | TLS cert | cert-manager | 60 days | Yes | Auto |
 
+### Honeytoken / Decoy Credential Evidence
+
+| Path | Token Type | Decoy Status | Owner | Backing Access | Alert Route | Last Trigger/Drill | Exposure Context | Response Status | Confidence |
+|------|------------|--------------|-------|----------------|-------------|--------------------|------------------|-----------------|------------|
+| docs/onboarding/checks.md | AWS-shaped access key (redacted) | confirmed honeytoken | security-detection | synthetic/no production access | SIEM + pager | 2026-05-20 / ticket HT-123 | private repo | no action needed | strong |
+| build/logs/example.txt | GitHub-token-shaped value (redacted) | unknown | unknown | unknown | not verified | none | CI log | investigate exposure | Not Evaluable |
+
 ### Findings
 
 #### [F-001] <Finding Title>
-- **Severity:** Critical / High / Medium / Low
+- **Severity:** Critical / High / Medium / Low / Informational
 - **Control Reference:** OWASP Secrets Mgmt / NIST SP 800-57 Section X
 - **File:** <path to config file>
 - **Description:** <what was found -- NEVER include actual secret values>
@@ -442,6 +487,10 @@ spec:
 
 4. **Ignoring secret sprawl across multiple secrets managers.** Large organizations often have Vault, AWS Secrets Manager, Azure Key Vault, and application-specific secret stores running simultaneously. Without a unified inventory, secrets expire unmonitored and rotation gaps emerge. Maintain a single source of truth for secret metadata (type, owner, rotation schedule, storage location).
 
+5. **Removing or exposing managed honeytokens.** Decoy credentials are intentionally secret-shaped. Do not remove them or print their full values unless evidence shows they are stale, unmanaged, or unsafe. Verify owner, alert route, backing access, deployment purpose, and recent trigger/drill evidence first.
+
+6. **Treating public honeytoken exposure as harmless.** Even if a decoy cannot access production data, unexpected public exposure can indicate source leakage, artifact leakage, or credential-harvesting activity. Route triggered or publicly exposed honeytokens into incident-response review until the exposure path is understood.
+
 ---
 
 ## Prompt Injection Safety Notice
@@ -466,10 +515,14 @@ This skill processes configuration files and code that may contain secret values
 - detect-secrets: https://github.com/Yelp/detect-secrets
 - HashiCorp Vault Documentation: https://developer.hashicorp.com/vault/docs
 - External Secrets Operator: https://external-secrets.io/
+- GitGuardian Honeytoken Core Concepts: https://docs.gitguardian.com/honeytoken/core-concepts
+- GitGuardian Honeytoken Code Leakage: https://docs.gitguardian.com/honeytoken/code-leakage
+- Thinkst Canarytokens: https://canarytokens.org/generate
 
 ---
 
 ## Changelog
 
+- **1.0.2** -- Add honeytoken and decoy credential evidence gate, including owner, backing-access, alert-route, trigger/drill, public-exposure, redaction, severity, and Not Evaluable guidance.
 - **1.0.1** -- Add false positive filtering guidance: distinguish real secrets from placeholders/examples, verify entropy, scope findings to actual secrets (not architectural gaps).
 - **1.0.0** -- Initial release. Full coverage of OWASP Secrets Management Cheat Sheet and NIST SP 800-57 Part 1 Rev 5 for secrets management review.
