@@ -13,7 +13,7 @@ phase: [recover]
 frameworks: [NIST-SP-800-61r2]
 difficulty: beginner
 time_estimate: "30-60min"
-version: "1.0.0"
+version: "1.0.1"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -26,7 +26,7 @@ argument-hint: "[target-file-or-directory]"
 > **Framework:** NIST SP 800-61 Rev 2 (Section 3.4: Post-Incident Activity)
 > **Role:** SOC Analyst, Security Engineer, vCISO
 > **Time:** 30-60 min
-> **Output:** Post-incident review report with blameless retrospective, root cause analysis, control failure mapping, metrics (MTTD, MTTR, MTTC), lessons learned, and remediation tracking plan
+> **Output:** Post-incident review report with blameless retrospective, root cause analysis, control failure mapping, metrics (MTTD, MTTR, MTTC), lessons learned, remediation verification register, and recurrence tracking plan
 
 ---
 
@@ -58,6 +58,9 @@ Before conducting the PIR, gather or confirm:
 - [ ] **Existing controls** -- Documentation of security controls that were in place at the time of the incident (detection rules, access controls, network segmentation, patching cadence).
 - [ ] **Previous PIR reports** -- Any prior post-incident reviews for similar incident types, to identify recurring patterns.
 - [ ] **Metrics data** -- Timestamps needed to compute MTTD, MTTR, and MTTC (see Step 4).
+- [ ] **Existing action status** -- Current remediation tickets, closure evidence, risk acceptances, and verifier signoffs related to this incident class.
+- [ ] **Recurrence signals** -- Detection rules, incident categories, precursor alerts, control test results, and trend metrics that would show whether the same failure mode recurs.
+- [ ] **Risk decision authority** -- Person or governance body authorized to accept residual risk when an action cannot be fully remediated.
 
 ---
 
@@ -266,10 +269,12 @@ Convert analysis findings into specific, measurable, assignable, and time-bound 
 
 **Remediation action template:**
 
-| ID | Finding | Action | Owner | Priority | Deadline | Tracking |
-|---|---|---|---|---|---|---|
-| REM-001 | [Specific finding from RCA or control failure mapping] | [Specific remediation action] | [Name and team] | [P0/P1/P2/P3] | [YYYY-MM-DD] | [Ticket ID] |
-| REM-002 | [Finding] | [Action] | [Owner] | [Priority] | [Deadline] | [Ticket ID] |
+| ID | Finding | Action | Owner | Priority | Deadline | Closure Criterion | Verification Method | Tracking |
+|---|---|---|---|---|---|---|---|---|
+| REM-001 | [Specific finding from RCA or control failure mapping] | [Specific remediation action] | [Name and team] | [P0/P1/P2/P3] | [YYYY-MM-DD] | [Observable condition that proves the fix works] | [Retest, drill, sample, replay, or review] | [Ticket ID] |
+| REM-002 | [Finding] | [Action] | [Owner] | [Priority] | [Deadline] | [Criterion] | [Method] | [Ticket ID] |
+
+An action item is not complete until the closure criterion has been verified by someone other than the implementer, or an explicit residual-risk decision has been recorded.
 
 **Remediation prioritization:**
 
@@ -279,6 +284,45 @@ Convert analysis findings into specific, measurable, assignable, and time-bound 
 | P1 | Significant gap that contributed to the incident severity or delayed response | 30 days |
 | P2 | Moderate gap that represents a defense-in-depth weakness | 90 days |
 | P3 | Minor improvement or best-practice enhancement | Next quarter |
+
+### Step 7: Remediation Verification and Recurrence Tracking
+
+Convert the remediation plan into an auditable action register. The PIR should distinguish action creation, implementation, verification, and residual-risk acceptance.
+
+**Action verification register:**
+
+| ID | Mapped Control Failure | Closure Criterion | Verification Method | Evidence / Artifact | Verifier | Status | Residual Risk | Follow-Up Date |
+|---|---|---|---|---|---|---|---|---|
+| REM-001 | [Preventive/Detective/Corrective gap] | [Specific expected state] | [Retest method] | [Ticket, log export, screenshot, test output, report ID] | [Name/team] | [Open / Implemented / Verified / Accepted Risk / Blocked] | [None / accepted by / expires] | [YYYY-MM-DD] |
+
+**Recommended verification methods:**
+
+| Remediation Type | Minimum Verification Evidence |
+|---|---|
+| **Detection rule** | Replay representative telemetry or run a controlled simulation and attach alert routing evidence, suppression status, and responder handoff result |
+| **Segmentation / access control** | Validate denied and allowed paths with source, destination, account, time, and policy/version evidence |
+| **Patch / configuration fix** | Confirm asset inventory coverage, patch/config version, rollback readiness, and scanner or configuration-compliance proof |
+| **Backup / recovery improvement** | Run a restore drill or tabletop walk-through and record objective success criteria and recovery timing |
+| **Playbook / process update** | Run a tabletop, training exercise, or ticket walkthrough showing the updated process is understood and usable |
+| **Vendor-dependent action** | Record vendor ticket, target date, compensating controls, interim monitoring, and risk owner |
+
+**Recurrence tracking:**
+
+| Incident Class | Prior Similar Incidents | Prior Actions Still Relevant? | Recurrence Signal | Monitoring Owner | Review Cadence | Escalation Trigger |
+|---|---|---|---|---|---|---|
+| [Ransomware / phishing / cloud compromise / insider / outage] | [Incident IDs or "none found"] | [Yes/No/Partial] | [Alert, metric, control test, precursor event] | [Team] | [Weekly/monthly/quarterly] | [Threshold that reopens review] |
+
+Use the recurrence table for full incidents and near misses. If the same class of incident occurred before, document whether prior actions failed, were incomplete, were not verified, or did not cover the new scenario.
+
+**Closure taxonomy:**
+
+| Status | Meaning | Required Evidence |
+|---|---|---|
+| **Open** | Work has not started or is still being designed | Owner, due date, and blocker status |
+| **Implemented** | The owner reports the change is deployed or process updated | Implementation artifact, version, ticket, or change record |
+| **Verified** | Independent evidence proves the closure criterion was met | Retest evidence and verifier signoff |
+| **Accepted Risk** | Remediation is not complete and risk is formally accepted | Decision owner, rationale, expiry/review date, compensating controls |
+| **Blocked** | External dependency prevents completion | Dependency owner, next update, interim controls |
 
 ---
 
@@ -302,7 +346,7 @@ Produce the post-incident review report with these exact sections:
 ## Post-Incident Review: [Incident ID]
 **Date of Review:** [YYYY-MM-DD]
 **Date of Incident:** [YYYY-MM-DD]
-**Skill:** post-incident-review v1.0.0
+**Skill:** post-incident-review v1.0.1
 **Framework:** NIST SP 800-61 Rev 2
 **PIR Facilitator:** [Name or "AI-assisted -- human facilitator required"]
 
@@ -354,12 +398,23 @@ root cause, and the number/priority of remediation actions identified.]
 - [Gap or failure identified during retrospective]
 
 ### Remediation Plan
-| ID | Finding | Action | Owner | Priority | Deadline | Ticket |
+| ID | Finding | Action | Owner | Priority | Deadline | Closure Criterion | Verification Method | Ticket |
+|---|---|---|---|---|---|---|---|---|
+| REM-001 | [Finding] | [Action] | [Owner] | [P0-P3] | [Date] | [Criterion] | [Method] | [ID] |
+
+### Remediation Verification Register
+| ID | Mapped Control Failure | Evidence / Artifact | Verifier | Status | Residual Risk | Follow-Up Date |
 |---|---|---|---|---|---|---|
-| REM-001 | [Finding] | [Action] | [Owner] | [P0-P3] | [Date] | [ID] |
+| REM-001 | [Control gap] | [Evidence link or ID] | [Verifier] | [Open / Implemented / Verified / Accepted Risk / Blocked] | [None / accepted risk details] | [Date] |
+
+### Recurrence Tracking
+| Incident Class | Prior Similar Incidents | Prior Action Outcome | Recurrence Signal | Monitoring Owner | Review Cadence | Escalation Trigger |
+|---|---|---|---|---|---|---|
+| [Class] | [Incident IDs / none found] | [Verified / failed / incomplete / not applicable] | [Metric, alert, or precursor] | [Owner] | [Cadence] | [Trigger] |
 
 ### Follow-Up Schedule
 - **Remediation Review Date:** [YYYY-MM-DD -- typically 30 days after PIR]
+- **Verification Review Date:** [YYYY-MM-DD -- when high-impact actions will be independently retested]
 - **PIR Report Distribution:** [List of recipients]
 - **Playbook Updates Required:** [Yes/No -- list specific playbooks]
 - **Detection Rule Updates Required:** [Yes/No -- list specific rules]
@@ -408,9 +463,9 @@ The most common pitfall is skipping the post-incident review entirely, especiall
 
 When the PIR focuses on who made mistakes rather than what systemic conditions enabled the incident, participants become defensive, withhold information, and the organization learns nothing. The "lesson learned" becomes "person X should have done Y" rather than "process Z should be changed to prevent this class of error." Enforce blameless ground rules at the start of every PIR and redirect blame-oriented statements to system-level observations.
 
-### Pitfall 3: Identifying Remediation Actions Without Tracking Them
+### Pitfall 3: Identifying Remediation Actions Without Verifying Them
 
-Documenting lessons learned and remediation actions in a PIR report that is then filed and forgotten produces zero security improvement. Every remediation action must be entered into the organization's work tracking system (Jira, ServiceNow, Azure DevOps) with an owner, priority, deadline, and scheduled review date. The PIR facilitator should schedule a follow-up review (typically 30 days after the PIR) to verify remediation progress.
+Documenting lessons learned and remediation actions in a PIR report that is then filed and forgotten produces zero security improvement. Every remediation action must be entered into the organization's work tracking system (Jira, ServiceNow, Azure DevOps) with an owner, priority, deadline, closure criterion, verification method, and scheduled review date. The PIR facilitator should schedule a follow-up review (typically 30 days after the PIR) to verify remediation progress and a separate verification review for high-impact actions.
 
 ### Pitfall 4: Stopping Root Cause Analysis at the Proximate Cause
 
@@ -419,6 +474,14 @@ Documenting lessons learned and remediation actions in a PIR report that is then
 ### Pitfall 5: Waiting Too Long to Conduct the PIR
 
 NIST recommends conducting the PIR within several days of incident closure. Waiting weeks or months causes participants to forget critical details, misremember the sequence of events, and lose the emotional context that drives honest reflection. Schedule the PIR meeting before the incident is closed, ideally within 3-5 business days of recovery completion.
+
+### Pitfall 6: Treating Implemented as Verified
+
+"Implemented" means a team reports that a fix exists. "Verified" means independent evidence proves the fix addresses the original failure mode. A detection rule that has never been replayed, a segmentation change that has not been tested from the relevant source, or a playbook update that responders have not exercised should not close a high-impact PIR action.
+
+### Pitfall 7: Ignoring Prior Similar Incidents
+
+A PIR that does not check prior similar incidents can miss recurrence. If an earlier PIR already created actions for the same incident class, record whether those actions were verified, incomplete, accepted as risk, or insufficient for the new scenario. Recurrence can be a full incident or a precursor signal such as repeated alert bypass, failed restore drill, repeated phishing lure, or reintroduced configuration drift.
 
 ---
 
