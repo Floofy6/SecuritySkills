@@ -13,7 +13,7 @@ phase: [respond, recover]
 frameworks: [NIST-SP-800-61r2, SANS-IH]
 difficulty: intermediate
 time_estimate: "30-60min"
-version: "1.0.1"
+version: "1.0.2"
 author: unitoneai
 license: MIT
 allowed-tools: Read, Grep, Glob
@@ -59,6 +59,9 @@ Before beginning, gather or confirm the following. Mark each item as obtained or
 - [ ] **Indicators of compromise (IOCs)** -- File hashes, IP addresses, domains, URLs, email addresses, registry keys, or behavioral indicators observed.
 - [ ] **Business context** -- What business functions do the affected systems support? Revenue impact, customer impact, regulatory exposure.
 - [ ] **Current state** -- Is the attack ongoing, contained, or resolved? What actions have already been taken?
+- [ ] **Cloud/SaaS control-plane scope** -- Cloud account or subscription tier, organization/project relationships, admin roles touched, cross-account trust paths, audit-log account status, and whether evidence shows workload-only or control-plane compromise.
+- [ ] **Communications trust boundary** -- Which Slack, email, ticketing, conferencing, SSO, and IdP channels may be inside the compromised trust boundary? Which out-of-band channel has been tested?
+- [ ] **Preserve-before-mutate baseline** -- IAM policy snapshots, active sessions, access keys/tokens, federation configuration, audit-log retention/export, and recovery admin paths captured before destructive containment.
 - [ ] **Existing IR plan** -- Does the organization have a documented IR plan, designated IR team, and established communication channels?
 - [ ] **Regulatory obligations** -- Applicable breach notification requirements (GDPR 72-hour rule, HIPAA, state breach notification laws, SEC 4-day rule, PCI DSS).
 - [ ] **Third-party dependencies** -- Managed security providers (MSSP/MDR), cyber insurance carrier notification requirements, external IR retainer.
@@ -127,6 +130,22 @@ Classify the incident using the NIST SP 800-61 taxonomy:
 | **Supply Chain Compromise** | Compromise via trusted third-party software or service | Malicious update, compromised dependency, vendor breach |
 | **Web Application Attack** | Exploitation of web application vulnerabilities | SQL injection, XSS, SSRF, API abuse |
 | **Social Engineering** | Manipulation of personnel to gain access or information | Phishing, BEC, vishing, pretexting |
+| **Cloud / SaaS Control Plane** | Compromise of account, subscription, organization, IdP, federation, logging, or policy administration rather than one workload | Organization admin role abuse, CloudTrail/Activity Log tampering, federation policy changes, new access keys, tenant-wide mailbox rules |
+
+#### Step 2.1a: Cloud Control-Plane Scope and Severity Calibration
+
+Do not treat every cloud-hosted workload incident as an organization-wide cloud control-plane incident. Require evidence for the trust boundary before escalating or before accepting a low-severity classification.
+
+| Evidence Gate | Benign / Lower Severity Signal | High-Risk Control-Plane Signal |
+|---|---|---|
+| Account or subscription tier | Sandbox/dev account with no production trust path | Production, security, log archive, billing, identity, or organization root account |
+| Principal scope | Workload role limited to one resource | Organization admin, subscription owner, break-glass, federation, CI/CD deployer, or IdP admin role |
+| Control-plane actions | Workload reads/writes within normal app scope | `CreateAccessKey`, policy detach/update, logging disabled, federation modified, org/SCP/project policy changed |
+| Data classification | Synthetic or non-customer test data | Customer, regulated, credential, key, audit-log, or proprietary data |
+| Production trust path | No cross-account role, peering, shared secret, or deploy path | Trust into prod, security tooling, backups, log archive, or shared identity plane |
+| Current state | Contained workload and intact audit logging | Active session, new persistence, disabled logging, unknown recovery admin path |
+
+**Severity rule:** A sandbox or dev workload incident can remain SEV-3/SEV-4 when there is no customer data, no privileged identity, no production trust path, no control-plane activity, and communications remain out-of-band. Escalate to SEV-1/SEV-2 when control-plane privileges, production trust, audit-log integrity, identity federation, or compromised communications are in scope.
 
 #### Step 2.2: Severity Determination
 
@@ -230,7 +249,32 @@ START: Is the attack actively ongoing?
                           - Rebuild from known-good baseline
 ```
 
-#### Step 3.1b: Wiper / Destructive Malware Response Track
+#### Step 3.1a: Cloud Control-Plane Response Branch
+
+Use this branch when alerts or evidence indicate account, subscription, organization, identity, federation, logging, policy, or SaaS tenant administration compromise. Keep it separate from workload-only containment.
+
+1. **Freeze the evidence baseline before mutation** -- Export IAM/role/policy state, active sessions, access-key inventory, federation/SSO configuration, audit-log retention settings, organization policies, and recovery admin paths before deleting users, detaching policies, or rotating broad credentials.
+2. **Protect logging and evidence infrastructure** -- Confirm CloudTrail, Azure Activity Logs, GCP Audit Logs, SaaS audit logs, and log archive accounts remain enabled, immutable where possible, and outside the compromised principal's write path.
+3. **Verify recovery authority out of band** -- Test break-glass access through an identity path that does not depend on the suspected IdP, email tenant, SSO provider, or collaboration platform.
+4. **Block new persistence before broad cleanup** -- Disable new access-key creation, restrict federation changes, pause risky automation, and snapshot policy state before mass revocation.
+5. **Contain by trust boundary** -- Scope containment to the affected account/subscription/project/tenant when evidence supports it; escalate to organization-wide containment when cross-account trust, shared identity, or log archive integrity is at risk.
+6. **Record destructive-change approval** -- Document who approved policy deletion, user deletion, federation disablement, key rotation, or tenant-wide mailbox/permission changes and what evidence was preserved first.
+
+#### Step 3.1b: Communications Trust Gate
+
+Before stakeholder notification, decide whether normal coordination channels are trustworthy. Treat Slack, Teams, email, ticketing, conferencing, paging, and document-sharing systems as potentially compromised when the incident involves IdP, SSO, email tenant, collaboration platform, endpoint session theft, or admin-token exposure.
+
+| Channel | Trust Decision | Required Evidence | Approved Use |
+|---|---|---|---|
+| Primary chat | [Trusted / Suspect / Unknown] | SSO/IdP scope, admin session review, audit logs, channel membership | [Normal updates / Sanitized updates / Do not use] |
+| Email | [Trusted / Suspect / Unknown] | Mailbox rule review, tenant admin actions, forwarding/export logs | [Legal notice / Out-of-band only / Do not use] |
+| Ticketing/case system | [Trusted / Suspect / Unknown] | SSO dependency, admin audit log, project membership | [Task tracking / Minimal metadata / Do not use] |
+| Conference bridge | [Trusted / Suspect / Unknown] | Host account integrity, participant verification, recording controls | [Briefings / Listen-only / Do not use] |
+| Out-of-band path | [Tested / Untested] | Contact roster, identity verification method, backup bridge or secure messaging | [Primary IR coordination / Emergency only] |
+
+If any primary channel is suspect or unknown during a SEV-1/SEV-2 incident, coordinate containment timing and sensitive facts over a tested out-of-band path until channel integrity is established.
+
+#### Step 3.1c: Wiper / Destructive Malware Response Track
 
 Wiper malware destroys data irrecoverably (unlike ransomware which preserves encrypted data for ransom). This demands a fundamentally different response posture.
 
@@ -277,6 +321,8 @@ Restore systems to normal operations:
 #### Step 3.4: Stakeholder Notification
 
 Use the appropriate communication template based on the audience.
+
+Do not use these templates over a channel marked `Suspect` or `Unknown` by the Communications Trust Gate when the message would reveal containment timing, evidence locations, privileged account names, legal strategy, or customer-notification decisions. Use the tested out-of-band path first, then copy sanitized summaries into normal systems after trust is restored.
 
 **Internal Executive Notification (SEV-1/SEV-2):**
 
@@ -340,6 +386,8 @@ Escalate to the next tier when any of the following conditions are met:
 | Ransomware with encryption of production systems | Executive leadership, External IR, Cyber insurance carrier, Law enforcement (FBI IC3) | Within 1 hour |
 | Wiper/destructive malware with active data destruction | Executive leadership, External IR, Cyber insurance, FBI IC3, CISA, Sector ISAC (e.g., H-ISAC for healthcare) | Immediately |
 | Active attacker with domain admin / root access | External IR firm, Executive leadership | Within 1 hour |
+| Cloud/SaaS control-plane compromise, logging tampering, or cross-account production trust exposure | Executive leadership, Cloud platform owner, Identity owner, Legal, External IR | Immediately |
+| Primary communications, IdP, email, or collaboration platform may be compromised | Incident commander, Executive sponsor, Legal, out-of-band communications lead | Immediately via tested out-of-band channel |
 | Incident duration exceeds 4 hours without containment | IR lead escalates to management for resource allocation | At 4-hour mark |
 | Evidence of supply chain compromise affecting customers | Legal, Customer communications, Executive leadership | Within 2 hours |
 | Regulatory notification deadline approaching | Legal counsel, Compliance team | 24 hours before deadline |
@@ -367,7 +415,7 @@ Produce the incident response report with these exact sections:
 ```markdown
 ## Incident Response Report: [Incident ID]
 **Date:** [YYYY-MM-DD]
-**Skill:** ir-playbook v1.0.0
+**Skill:** ir-playbook v1.0.2
 **Frameworks:** NIST SP 800-61 Rev 2, SANS Incident Handler's Handbook
 **Incident Commander:** [Name or "Unassigned -- assign immediately"]
 
@@ -386,6 +434,21 @@ and recommended immediate actions. Lead with the most critical fact.]
 | Recoverability | [Regular / Supplemented / Extended / Not Recoverable] |
 | Status | [Detected / Analyzing / Contained / Eradicated / Recovered / Closed] |
 
+### Cloud and Control-Plane Scope
+| Field | Value |
+|---|---|
+| Account/subscription/tenant tier | [Sandbox / Dev / Prod / Security / Log archive / Identity / Unknown] |
+| Workload vs control plane | [Workload-only / Control-plane suspected / Control-plane confirmed / Unknown] |
+| Production trust path | [None found / Present / Unknown] |
+| Control-plane evidence | [IAM, federation, audit-log, org policy, access-key, SaaS admin evidence] |
+| Severity calibration | [Why this is or is not organization-wide] |
+
+### Communications Trust Decision
+| Channel | Trust Status | Evidence | Approved Use |
+|---|---|---|---|
+| [Slack/Teams/Email/Ticketing/Bridge] | [Trusted / Suspect / Unknown] | [Evidence reviewed] | [Allowed use or restriction] |
+| Out-of-band path | [Tested / Untested] | [Identity verification method] | [Primary / Backup / Not ready] |
+
 ### Timeline
 | Timestamp (UTC) | Event | Source |
 |---|---|---|
@@ -397,9 +460,18 @@ and recommended immediate actions. Lead with the most critical fact.]
 | [IP/Domain/Hash/...] | [value] | [timestamp] | [Confirmed/Probable/Suspected] | [T-code] |
 
 ### Containment Actions
-| Action | Status | Timestamp | Performed By |
-|---|---|---|---|
-| [Action taken] | [Complete / In Progress / Planned] | [timestamp] | [responder] |
+| Action | Status | Timestamp | Performed By | Evidence preserved first |
+|---|---|---|---|---|
+| [Action taken] | [Complete / In Progress / Planned] | [timestamp] | [responder] | [IAM/session/log/policy snapshot reference or N/A] |
+
+### Preserve-Before-Mutate Checklist
+| Asset | Preserved | Reference |
+|---|---|---|
+| IAM roles, policies, and access keys | [Yes / No / N/A] | [Snapshot/export link] |
+| Active sessions and token inventory | [Yes / No / N/A] | [Log/export link] |
+| Federation, SSO, and IdP configuration | [Yes / No / N/A] | [Snapshot/export link] |
+| Audit-log configuration and retention | [Yes / No / N/A] | [Snapshot/export link] |
+| Recovery admin or break-glass path | [Yes / No / N/A] | [Test evidence] |
 
 ### Eradication and Recovery
 - **Root Cause:** [Description of initial access vector and exploitation path]
@@ -455,6 +527,14 @@ Responders under pressure often prioritize containment speed over evidence prese
 ### Pitfall 2: Alerting the Attacker During Investigation
 
 Communicating about the incident over channels the attacker may be monitoring (corporate email, Slack, Teams) can tip off the adversary, prompting them to accelerate data exfiltration, deploy destructive payloads, or cover their tracks. For SEV-1 and SEV-2 incidents, use out-of-band communication channels (personal phones, dedicated secure messaging, physical meetings) until the attacker's access to communication systems has been assessed and ruled out.
+
+### Pitfall 2a: Treating Cloud Workload and Control-Plane Incidents the Same
+
+Cloud incidents need a control-plane scope decision. A compromised VM in an isolated sandbox is not automatically an organization-wide emergency, but an organization admin role, federation change, disabled audit log, log archive write path, or production cross-account trust can turn a small alert into a tenant-wide incident. Calibrate severity from account tier, data classification, trust paths, identity scope, and control-plane evidence rather than from the word "cloud" alone.
+
+### Pitfall 2b: Mutating Identity or Cloud State Before Capturing the Baseline
+
+Deleting an admin user, detaching IAM policies, rotating every key, disabling an IdP connector, or changing org policies can destroy forensic context or lock out responders. For cloud and SaaS incidents, preserve IAM, sessions, access keys, federation, audit-log retention, policy state, and recovery admin evidence before destructive containment unless active harm requires immediate isolation.
 
 ### Pitfall 3: Failing to Establish a Clear Incident Commander
 
